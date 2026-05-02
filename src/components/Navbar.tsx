@@ -29,16 +29,16 @@ export default function Navbar() {
       initial={{ y: -100, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-      className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 md:px-12 h-12 md:h-16"
+      className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 md:px-12 h-14 md:h-16"
     >
       <div className="absolute inset-0 bg-brand-blue" />
       
-      <div className="relative z-10 flex items-center gap-8 h-full">
+      <div className="relative z-10 flex items-center gap-4 md:gap-8 h-full">
         <Link to="/" className="flex items-center group h-full">
           <img 
             src="/logo gavea.webp" 
             alt="Gávea AI Logo" 
-            className="w-24 h-24 md:w-32 md:h-32 object-contain group-hover:scale-110 transition-transform duration-500"
+            className="w-20 h-20 md:w-32 md:h-32 object-contain group-hover:scale-110 transition-transform duration-500"
           />
         </Link>
         <div className="hidden md:flex items-center gap-6 text-sm font-medium text-white/70">

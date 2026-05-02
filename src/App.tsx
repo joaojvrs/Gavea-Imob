@@ -41,27 +41,27 @@ function HomePage() {
       <Hero />
       
       {/* Search & Filter Bar */}
-      <section className="px-6 md:px-12 py-4 bg-white/40 backdrop-blur-md border-b border-brand-blue/5">
-        <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-4 overflow-x-auto pb-2 md:pb-0 no-scrollbar">
+      <section className="px-4 md:px-12 py-4 bg-white/40 backdrop-blur-md border-b border-brand-blue/5">
+        <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3 md:gap-4">
+          <div className="flex items-center gap-4 overflow-x-auto pb-1 md:pb-0 no-scrollbar">
             <button 
               onClick={() => setFilterOpen(!filterOpen)}
               className={cn(
-                "flex items-center gap-2 px-6 py-2.5 rounded-full border border-brand-blue/10 bg-white transition-all hover:border-brand-accent group",
+                "flex items-center gap-2 px-5 md:px-6 py-2.5 rounded-full border border-brand-blue/10 bg-white transition-all hover:border-brand-accent group",
                 filterOpen && "bg-brand-blue text-white"
               )}
             >
-              <SlidersHorizontal size={18} className={cn("text-brand-accent", filterOpen && "text-white")} />
-              <span className="text-sm font-bold uppercase tracking-widest leading-none">Filtros</span>
+              <SlidersHorizontal size={16} className={cn("text-brand-accent md:w-[18px] md:h-[18px]", filterOpen && "text-white")} />
+              <span className="text-xs md:text-sm font-bold uppercase tracking-widest leading-none">Filtros</span>
             </button>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 md:gap-3">
             <span className="text-[10px] uppercase tracking-[0.2em] font-bold text-brand-blue/30 hidden sm:block">Ordenar por</span>
             <select 
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="bg-transparent border-none text-sm font-bold text-brand-blue/80 focus:ring-0 cursor-pointer appearance-none"
+              className="bg-transparent border-none text-[12px] md:text-sm font-bold text-brand-blue/80 focus:ring-0 cursor-pointer appearance-none"
             >
               <option value="newest">Lançamentos</option>
               <option value="price-desc">Maior Valor</option>
@@ -81,7 +81,7 @@ function HomePage() {
               exit={{ height: 0, opacity: 0 }}
               className="overflow-hidden"
             >
-              <div className="max-w-7xl mx-auto py-8 grid grid-cols-1 md:grid-cols-4 gap-8">
+              <div className="max-w-7xl mx-auto py-6 md:py-8 grid grid-cols-1 md:grid-cols-4 gap-6 md:gap-8">
                 <div className="space-y-4">
                   <label className="text-[10px] uppercase font-bold tracking-widest text-brand-blue/40 flex items-center gap-2">
                     <DollarSign size={12} /> Faixa de Preço
@@ -136,24 +136,24 @@ function HomePage() {
       </section>
 
       {/* Feature Sections Collection */}
-      <section id="collection" className="py-24 px-6 md:px-12 bg-white">
+      <section id="collection" className="py-16 md:py-24 px-4 md:px-12 bg-white">
         <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col md:flex-row justify-between items-end gap-8 mb-20">
+          <div className="flex flex-col md:flex-row justify-between items-end gap-6 md:gap-8 mb-12 md:mb-20">
             <div className="max-w-xl">
-              <span className="text-brand-accent font-display tracking-[0.2em] uppercase text-xs mb-4 block font-bold">
+              <span className="text-brand-accent font-display tracking-[0.2em] uppercase text-xs mb-3 md:mb-4 block font-bold">
                 Curation Selection
               </span>
-              <h2 className="text-4xl md:text-6xl font-display font-bold tracking-tighter text-brand-blue">
-                Residências de <br /> <span className="text-brand-accent italic font-light font-sans">Destaque.</span>
+              <h2 className="text-3xl md:text-6xl font-display font-bold tracking-tighter text-brand-blue leading-[1.1]">
+                Residências de <br className="hidden md:block" /> <span className="text-brand-accent italic font-light font-sans">Destaque.</span>
               </h2>
             </div>
-            <p className="text-brand-blue/50 max-w-md font-light text-lg italic">
+            <p className="text-brand-blue/50 max-w-md font-light text-base md:text-lg italic leading-relaxed">
               "Uma seleção rigorosa de propriedades que personificam o luxo moderno e a excelência arquitetônica."
             </p>
           </div>
           
           {/* Collection Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-10">
             {PROPERTIES.map((property) => (
               <motion.div
                 key={property.id}
@@ -166,7 +166,7 @@ function HomePage() {
                   to={`/property/${property.id}`}
                   className="block"
                 >
-                  <div className="aspect-[4/5] bg-brand-slate rounded-[2.5rem] border border-brand-blue/5 overflow-hidden group relative cursor-pointer shadow-[0_10px_40px_rgba(10,37,64,0.02)] transition-all duration-700 group-hover:shadow-[0_40px_100px_rgba(10,37,64,0.12)]">
+                  <div className="aspect-[4/5] bg-brand-slate rounded-[2rem] md:rounded-[2.5rem] border border-brand-blue/5 overflow-hidden group relative cursor-pointer shadow-[0_10px_40px_rgba(10,37,64,0.02)] transition-all duration-700 group-hover:shadow-[0_40px_100px_rgba(10,37,64,0.12)]">
                     <div className="absolute inset-0 bg-gradient-to-t from-brand-blue/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 z-10" />
                     
                     <div 
@@ -174,16 +174,16 @@ function HomePage() {
                       style={{ backgroundImage: `url(${property.image})` }}
                     />
                     
-                    <div className="absolute bottom-8 left-8 z-20 transition-transform duration-500 group-hover:translate-x-2">
+                    <div className="absolute bottom-6 left-6 md:bottom-8 md:left-8 z-20 transition-transform duration-500 group-hover:translate-x-2">
                       <motion.h3 
                         layoutId={`property-title-${property.id}`}
-                        className="text-2xl font-display font-bold text-white drop-shadow-md"
+                        className="text-xl md:text-2xl font-display font-bold text-white drop-shadow-md"
                       >
                         {property.title}
                       </motion.h3>
                       <motion.p 
                         layoutId={`property-location-${property.id}`}
-                        className="text-white/80 text-sm font-light uppercase tracking-widest mt-1"
+                        className="text-white/80 text-xs md:text-sm font-light uppercase tracking-widest mt-1"
                       >
                         {property.location}
                       </motion.p>
@@ -193,8 +193,8 @@ function HomePage() {
                       </div>
                     </div>
                     
-                    <div className="absolute top-8 right-8 z-20 bg-white/20 backdrop-blur-xl border border-white/30 px-4 py-1.5 rounded-full shadow-2xl transition-all duration-500 group-hover:bg-brand-accent group-hover:border-brand-accent">
-                      <span className="text-white text-[10px] font-bold font-mono uppercase tracking-widest leading-none">{property.matchScore}% STYLE MATCH</span>
+                    <div className="absolute top-6 right-6 md:top-8 md:right-8 z-20 bg-white/20 backdrop-blur-xl border border-white/30 px-3 py-1 md:px-4 md:py-1.5 rounded-full shadow-2xl transition-all duration-500 group-hover:bg-brand-accent group-hover:border-brand-accent">
+                      <span className="text-white text-[9px] md:text-[10px] font-bold font-mono uppercase tracking-widest leading-none">{property.matchScore}% STYLE MATCH</span>
                     </div>
                   </div>
                 </Link>

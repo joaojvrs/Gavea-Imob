@@ -44,7 +44,7 @@ function PropertyAIChat({ propertyTitle }: { propertyTitle: string }) {
   };
 
   return (
-    <div className="bg-white rounded-[2rem] border border-brand-blue/5 shadow-xl overflow-hidden flex flex-col h-[500px]">
+    <div className="bg-white rounded-[2rem] border border-brand-blue/5 shadow-xl overflow-hidden flex flex-col h-[400px] md:h-[500px]">
       <div className="p-4 border-b border-brand-blue/5 bg-brand-slate/30 flex items-center gap-2">
         <Sparkles size={16} className="text-brand-accent" />
         <span className="text-[10px] font-bold uppercase tracking-widest text-brand-blue">Especialista Gávea AI</span>
@@ -194,13 +194,13 @@ export default function PropertyPage() {
             </span>
             <motion.h1 
               layoutId={`property-title-${id}`}
-              className="text-5xl md:text-7xl font-display font-bold tracking-tighter mb-4"
+              className="text-4xl sm:text-5xl md:text-7xl font-display font-bold tracking-tighter mb-4"
             >
               {property.title}
             </motion.h1>
             <motion.div 
               layoutId={`property-location-${id}`}
-              className="flex items-center gap-2 text-brand-blue/60"
+              className="flex items-center gap-2 text-brand-blue/60 text-sm md:text-base"
             >
               <MapPin size={18} />
               <span className="font-light">{property.location}</span>
@@ -210,12 +210,12 @@ export default function PropertyPage() {
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.3, duration: 1, ease: [0.16, 1, 0.3, 1] }}
-            className="text-right"
+            className="md:text-right"
           >
-            <p className="text-4xl md:text-5xl font-display font-bold text-brand-blue tracking-tighter">
+            <p className="text-3xl sm:text-4xl md:text-5xl font-display font-bold text-brand-blue tracking-tighter">
               {property.price || "Sob Consulta"}
             </p>
-            <p className="text-brand-blue/40 font-light text-[10px] mt-2 font-mono uppercase tracking-[0.3em]">
+            <p className="text-brand-blue/40 font-light text-[9px] md:text-[10px] mt-1 md:mt-2 font-mono uppercase tracking-[0.3em]">
               BRL • Luxury Collection
             </p>
           </motion.div>
@@ -223,56 +223,56 @@ export default function PropertyPage() {
       </section>
 
       {/* Immersive Viewer Section */}
-      <section className="px-6 md:px-12 mb-24">
+      <section className="px-4 md:px-12 mb-16 md:mb-24">
         <motion.div 
           layoutId={`property-card-${id}`}
           transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-          className="max-w-7xl mx-auto aspect-[21/9] bg-brand-slate rounded-[2.5rem] overflow-hidden relative group shadow-2xl"
+          className="max-w-7xl mx-auto aspect-[4/5] sm:aspect-video md:aspect-[21/9] bg-brand-slate rounded-[2rem] md:rounded-[2.5rem] overflow-hidden relative group shadow-2xl"
         >
           <div className="absolute inset-0 z-0">
             <MediaContent />
             
             {/* Visual Tour HUD Overlay */}
-            <div className="absolute inset-0 flex flex-col justify-between p-6 md:p-10 z-10 pointer-events-none">
+            <div className="absolute inset-0 flex flex-col justify-between p-4 md:p-10 z-10 pointer-events-none">
                 <div className="flex justify-between items-start">
-                    <div className="flex flex-col gap-4">
-                      <div className="bg-black/20 backdrop-blur-xl border border-white/10 px-4 py-2 rounded-full inline-flex items-center gap-2 pointer-events-auto">
-                          <div className="w-2 h-2 bg-brand-accent rounded-full animate-pulse" />
-                          <span className="text-[10px] font-bold text-white uppercase tracking-widest">Vision 8K Experience</span>
+                    <div className="flex flex-col gap-3 md:gap-4">
+                      <div className="bg-black/20 backdrop-blur-xl border border-white/10 px-3 py-1.5 md:px-4 md:py-2 rounded-full inline-flex items-center gap-2 pointer-events-auto">
+                          <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-brand-accent rounded-full animate-pulse" />
+                          <span className="text-[8px] md:text-[10px] font-bold text-white uppercase tracking-widest">Vision 8K Experience</span>
                       </div>
                       
-                      <div className="flex bg-black/40 backdrop-blur-xl border border-white/10 rounded-full p-1 self-start pointer-events-auto">
+                      <div className="flex bg-black/40 backdrop-blur-xl border border-white/10 rounded-full p-0.5 md:p-1 self-start pointer-events-auto">
                         <button 
                           onClick={() => setMediaType('photo')}
                           className={cn(
-                            "px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all flex items-center gap-2",
+                            "px-3 py-1.5 md:px-4 md:py-2 rounded-full text-[8px] md:text-[10px] font-bold uppercase tracking-widest transition-all flex items-center gap-1.5 md:gap-2",
                             mediaType === 'photo' ? "bg-white text-brand-blue shadow-lg" : "text-white/60 hover:text-white"
                           )}
                         >
-                          <ImageIcon size={14} /> Fotos
+                          <ImageIcon size={12} className="md:w-[14px] md:h-[14px]" /> Fotos
                         </button>
                         <button 
                           onClick={() => setMediaType('video')}
                           className={cn(
-                            "px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all flex items-center gap-2",
+                            "px-3 py-1.5 md:px-4 md:py-2 rounded-full text-[8px] md:text-[10px] font-bold uppercase tracking-widest transition-all flex items-center gap-1.5 md:gap-2",
                             mediaType === 'video' ? "bg-white text-brand-blue shadow-lg" : "text-white/60 hover:text-white"
                           )}
                         >
-                          <Video size={14} /> Vídeos
+                          <Video size={12} className="md:w-[14px] md:h-[14px]" /> Vídeos
                         </button>
                       </div>
                     </div>
                     
                     <button 
                       onClick={() => setIsExpanded(true)}
-                      className="bg-black/20 backdrop-blur-xl border border-white/10 p-3 rounded-full text-white pointer-events-auto hover:bg-white hover:text-brand-blue transition-all active:scale-95"
+                      className="bg-black/20 backdrop-blur-xl border border-white/10 p-2 md:p-3 rounded-full text-white pointer-events-auto hover:bg-white hover:text-brand-blue transition-all active:scale-95"
                     >
-                        <Maximize2 size={24} />
+                        <Maximize2 size={20} className="md:w-6 md:h-6" />
                     </button>
                 </div>
                 
                 <div className="flex justify-center">
-                    <div className="bg-black/40 backdrop-blur-2xl border border-white/10 p-1 md:p-1.5 rounded-full flex gap-1 pointer-events-auto shadow-2xl overflow-x-auto no-scrollbar max-w-full">
+                    <div className="bg-black/40 backdrop-blur-2xl border border-white/10 p-1 md:p-1.5 rounded-full flex gap-1 pointer-events-auto shadow-2xl overflow-x-auto no-scrollbar max-w-full px-2 md:px-1.5">
                         {roomsData.map(room => (
                             <button 
                                 key={room.id}
@@ -298,32 +298,32 @@ export default function PropertyPage() {
       <section className="px-6 md:px-12 max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-16">
         <div className="lg:col-span-2 space-y-16">
           {/* Specs */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            <div className="bg-white p-6 rounded-3xl border border-brand-blue/5 shadow-sm space-y-2">
-              <span className="text-[10px] text-brand-blue/40 uppercase tracking-widest font-bold">Metragem</span>
-              <div className="flex items-center gap-2 text-2xl font-display font-medium">
-                <Ruler size={24} className="text-brand-accent" />
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8">
+            <div className="bg-white p-4 md:p-6 rounded-2xl md:rounded-3xl border border-brand-blue/5 shadow-sm space-y-1 md:space-y-2">
+              <span className="text-[9px] md:text-[10px] text-brand-blue/40 uppercase tracking-widest font-bold">Metragem</span>
+              <div className="flex items-center gap-2 text-xl md:text-2xl font-display font-medium">
+                <Ruler size={20} className="text-brand-accent md:w-6 md:h-6" />
                 {property.area}m²
               </div>
             </div>
-            <div className="bg-white p-6 rounded-3xl border border-brand-blue/5 shadow-sm space-y-2">
-              <span className="text-[10px] text-brand-blue/40 uppercase tracking-widest font-bold">Dormitórios</span>
-              <div className="flex items-center gap-2 text-2xl font-display font-medium">
-                <Bed size={24} className="text-brand-accent" />
+            <div className="bg-white p-4 md:p-6 rounded-2xl md:rounded-3xl border border-brand-blue/5 shadow-sm space-y-1 md:space-y-2">
+              <span className="text-[9px] md:text-[10px] text-brand-blue/40 uppercase tracking-widest font-bold">Dormitórios</span>
+              <div className="flex items-center gap-2 text-xl md:text-2xl font-display font-medium">
+                <Bed size={20} className="text-brand-accent md:w-6 md:h-6" />
                 {property.bedrooms} QD
               </div>
             </div>
-            <div className="bg-white p-6 rounded-3xl border border-brand-blue/5 shadow-sm space-y-2">
-              <span className="text-[10px] text-brand-blue/40 uppercase tracking-widest font-bold">Banheiros</span>
-              <div className="flex items-center gap-2 text-2xl font-display font-medium">
-                <Bath size={24} className="text-brand-accent" />
+            <div className="bg-white p-4 md:p-6 rounded-2xl md:rounded-3xl border border-brand-blue/5 shadow-sm space-y-1 md:space-y-2">
+              <span className="text-[9px] md:text-[10px] text-brand-blue/40 uppercase tracking-widest font-bold">Banheiros</span>
+              <div className="flex items-center gap-2 text-xl md:text-2xl font-display font-medium">
+                <Bath size={20} className="text-brand-accent md:w-6 md:h-6" />
                 {property.bathrooms} WC
               </div>
             </div>
-            <div className="bg-white p-6 rounded-3xl border border-brand-blue/5 shadow-sm space-y-2">
-              <span className="text-[10px] text-brand-blue/40 uppercase tracking-widest font-bold">Vagas</span>
-              <div className="flex items-center gap-2 text-2xl font-display font-medium">
-                <Car size={24} className="text-brand-accent" />
+            <div className="bg-white p-4 md:p-6 rounded-2xl md:rounded-3xl border border-brand-blue/5 shadow-sm space-y-1 md:space-y-2">
+              <span className="text-[9px] md:text-[10px] text-brand-blue/40 uppercase tracking-widest font-bold">Vagas</span>
+              <div className="flex items-center gap-2 text-xl md:text-2xl font-display font-medium">
+                <Car size={20} className="text-brand-accent md:w-6 md:h-6" />
                 {property.parking} VG
               </div>
             </div>
@@ -333,29 +333,29 @@ export default function PropertyPage() {
 
           {/* Narrative Description */}
           <div className="prose prose-brand-blue max-w-none">
-            <h2 className="text-4xl font-display font-bold tracking-tight mb-8">Curadoria {property.neighborhood}.</h2>
-            <p className="text-brand-blue/70 text-xl font-light leading-relaxed mb-8">
+            <h2 className="text-3xl md:text-4xl font-display font-bold tracking-tight mb-6 md:mb-8">Curadoria {property.neighborhood}.</h2>
+            <p className="text-brand-blue/70 text-lg md:text-xl font-light leading-relaxed mb-8">
               {property.description}
             </p>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-12 mt-16">
-              <div className="space-y-8">
-                <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-brand-blue/40 border-l-2 border-brand-accent pl-4">Atributos Exclusivos</h3>
-                <ul className="space-y-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-12 mt-12 md:mt-16">
+              <div className="space-y-6 md:space-y-8">
+                <h3 className="text-[10px] md:text-xs font-bold uppercase tracking-[0.2em] text-brand-blue/40 border-l-2 border-brand-accent pl-4">Atributos Exclusivos</h3>
+                <ul className="space-y-4 md:space-y-5">
                   {property.features.map((feature, i) => (
-                    <li key={i} className="flex items-start gap-4 text-brand-blue/70 font-light text-base group">
-                      <div className="w-1.5 h-1.5 rounded-full bg-brand-accent mt-2 group-hover:scale-150 transition-transform" />
+                    <li key={i} className="flex items-start gap-3 md:gap-4 text-brand-blue/70 font-light text-sm md:text-base group">
+                      <div className="w-1.5 h-1.5 rounded-full bg-brand-accent mt-2 group-hover:scale-150 transition-transform flex-shrink-0" />
                       {feature}
                     </li>
                   ))}
                 </ul>
               </div>
-              <div className="space-y-8">
-                <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-brand-blue/40 border-l-2 border-brand-accent pl-4">Lazer & Atmosfera</h3>
-                <ul className="space-y-5">
+              <div className="space-y-6 md:space-y-8">
+                <h3 className="text-[10px] md:text-xs font-bold uppercase tracking-[0.2em] text-brand-blue/40 border-l-2 border-brand-accent pl-4">Lazer & Atmosfera</h3>
+                <ul className="space-y-4 md:space-y-5">
                   {property.lazer.map((item, i) => (
-                    <li key={i} className="flex items-start gap-4 text-brand-blue/70 font-light text-base group">
-                      <Sparkles size={16} className="text-brand-accent/50 group-hover:text-brand-accent mt-1 transition-colors" />
+                    <li key={i} className="flex items-start gap-3 md:gap-4 text-brand-blue/70 font-light text-sm md:text-base group">
+                      <Sparkles size={14} className="text-brand-accent/50 group-hover:text-brand-accent mt-1 transition-colors flex-shrink-0 md:w-4 md:h-4" />
                       {item}
                     </li>
                   ))}

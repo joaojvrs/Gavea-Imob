@@ -119,22 +119,22 @@ export default function GaveaAI() {
         </motion.div>
 
         {/* Chat Interface */}
-        <div className="bg-white/80 backdrop-blur-xl border border-brand-blue/5 rounded-[2.5rem] overflow-hidden shadow-2xl shadow-brand-blue/10 flex flex-col min-h-[500px] max-h-[700px]">
+        <div className="bg-white/80 backdrop-blur-xl border border-brand-blue/5 rounded-[2rem] md:rounded-[2.5rem] overflow-hidden shadow-2xl shadow-brand-blue/10 flex flex-col min-h-[400px] md:min-h-[500px] max-h-[600px] md:max-h-[700px]">
           
           {/* Chat Messages */}
-          <div className="flex-1 overflow-y-auto p-6 md:p-10 space-y-6 no-scrollbar">
+          <div className="flex-1 overflow-y-auto p-5 md:p-10 space-y-4 md:space-y-6 no-scrollbar">
             <AnimatePresence initial={false}>
               {messages.length === 0 && (
                 <motion.div 
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  className="h-full flex flex-col items-center justify-center text-center space-y-4"
+                  className="h-full flex flex-col items-center justify-center text-center space-y-4 px-4"
                 >
-                  <div className="w-16 h-16 bg-brand-slate rounded-full flex items-center justify-center text-brand-accent">
-                    <MessageSquare size={32} />
+                  <div className="w-12 h-12 md:w-16 md:h-16 bg-brand-slate rounded-full flex items-center justify-center text-brand-accent">
+                    <MessageSquare size={24} className="md:w-8 md:h-8" />
                   </div>
-                  <p className="text-brand-blue/40 font-light">
-                    Como posso ajudar você a encontrar o seu próximo endereço icônico? <br /> Escolha uma sugestão ou escreva abaixo.
+                  <p className="text-brand-blue/40 font-light text-sm md:text-base">
+                    Como posso ajudar você a encontrar o seu próximo endereço icônico? <br className="hidden md:block" /> Escolha uma sugestão ou escreva abaixo.
                   </p>
                 </motion.div>
               )}
@@ -150,12 +150,12 @@ export default function GaveaAI() {
                   )}
                 >
                   <div className={cn(
-                    "max-w-[85%] px-6 py-4 rounded-[1.5rem]",
+                    "max-w-[85%] px-4 py-3 md:px-6 md:py-4 rounded-[1.2rem] md:rounded-[1.5rem]",
                     m.type === 'user' 
                       ? "bg-brand-blue text-white rounded-tr-none" 
                       : "bg-brand-slate text-brand-blue rounded-tl-none shadow-sm"
                   )}>
-                    <p className="text-sm md:text-base font-light leading-relaxed">
+                    <p className="text-xs md:text-base font-light leading-relaxed">
                       {m.text}
                     </p>
                   </div>
@@ -207,15 +207,15 @@ export default function GaveaAI() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSend(input)}
-                placeholder="Descreva seu estilo de vida ou tire suas dúvidas..."
-                className="w-full bg-white border border-brand-blue/10 rounded-full py-4 pl-8 pr-16 text-sm font-light focus:outline-none focus:ring-2 focus:ring-brand-accent/20 transition-all placeholder:text-brand-blue/30 shadow-inner"
+                placeholder="Descreva seu estilo de vida..."
+                className="w-full bg-white border border-brand-blue/10 rounded-full py-3.5 md:py-4 pl-6 md:pl-8 pr-14 md:pr-16 text-xs md:text-sm font-light focus:outline-none focus:ring-2 focus:ring-brand-accent/20 transition-all placeholder:text-brand-blue/30 shadow-inner"
               />
               <button 
                 onClick={() => handleSend(input)}
                 disabled={!input.trim() || isLoading}
-                className="absolute right-2 top-1/2 -translate-y-1/2 bg-brand-blue text-white p-3 rounded-full hover:bg-brand-accent transition-all duration-300 disabled:opacity-50 disabled:hover:bg-brand-blue"
+                className="absolute right-1.5 md:right-2 top-1/2 -translate-y-1/2 bg-brand-blue text-white p-2.5 md:p-3 rounded-full hover:bg-brand-accent transition-all duration-300 disabled:opacity-50 disabled:hover:bg-brand-blue"
               >
-                <Send size={18} />
+                <Send size={16} className="md:w-[18px] md:h-[18px]" />
               </button>
             </div>
           </div>

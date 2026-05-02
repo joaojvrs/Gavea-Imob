@@ -64,7 +64,7 @@ export default function Hero() {
                 transition: { duration: 1.2, ease: [0.16, 1, 0.3, 1] } 
               },
             }}
-            className="text-5xl md:text-7xl lg:text-8xl font-display font-bold text-white tracking-tighter leading-[0.9] mb-8 drop-shadow-2xl"
+            className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-display font-bold text-white tracking-tighter leading-[1.1] md:leading-[0.9] mb-8 drop-shadow-2xl px-2"
           >
             Arquitetura e visão, <br />
             <span className="italic font-light text-brand-accent">em harmonia.</span>
@@ -79,7 +79,7 @@ export default function Hero() {
                 transition: { duration: 1.2, ease: [0.16, 1, 0.3, 1] } 
               },
             }}
-            className="text-white/80 text-lg md:text-xl max-w-2xl mx-auto mb-10 font-light leading-relaxed px-4 drop-shadow-md"
+            className="text-white/80 text-base md:text-xl max-w-2xl mx-auto mb-10 font-light leading-relaxed px-6 md:px-4 drop-shadow-md"
           >
             Descubra residências que transcendem o comum. Unimos design autoral e inteligência de dados para encontrar o seu próximo endereço icônico.
           </motion.p>
