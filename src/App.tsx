@@ -7,13 +7,17 @@ import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "motion/react";
 import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
-import { SlidersHorizontal, ChevronDown, DollarSign, Bed, Bath, Ruler, ArrowRight } from "lucide-react";
+import { SlidersHorizontal, ChevronDown, DollarSign, Bed, Bath, Ruler } from "lucide-react";
 import { cn } from "@/src/lib/utils";
 import Navbar from "./components/Navbar";
 import Hero from "./components/Hero";
 import GaveaAI from "./components/GaveaAI";
 import Footer from "./components/Footer";
 import PropertyPage from "./pages/PropertyPage";
+import AuthPage from "./pages/AuthPage";
+import Dashboard from "./pages/Dashboard";
+import { AuthProvider } from "./context/AuthContext";
+import ProtectedRoute from "./components/ProtectedRoute";
 import { PROPERTIES } from "./data/properties";
 
 function HomePage() {
@@ -140,26 +144,56 @@ function HomePage() {
         <div className="max-w-7xl mx-auto">
           <div className="flex flex-col md:flex-row justify-between items-end gap-6 md:gap-8 mb-12 md:mb-20">
             <div className="max-w-xl">
-              <span className="text-brand-accent font-display tracking-[0.2em] uppercase text-xs mb-3 md:mb-4 block font-bold">
+              <motion.span
+                initial={{ opacity: 0, y: 10 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-40px" }}
+                transition={{ duration: 1.1, ease: [0.25, 0.46, 0.45, 0.94] }}
+                className="text-brand-accent font-display tracking-[0.2em] uppercase text-xs mb-3 md:mb-4 block font-bold"
+              >
                 Curation Selection
-              </span>
-              <h2 className="text-3xl md:text-6xl font-display font-bold tracking-tighter text-brand-blue leading-[1.1]">
+              </motion.span>
+              <motion.h2
+                initial={{ opacity: 0, y: 24 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-40px" }}
+                transition={{ duration: 1.3, ease: [0.25, 0.46, 0.45, 0.94], delay: 0.12 }}
+                className="text-3xl md:text-6xl font-display font-bold tracking-tighter text-brand-blue leading-[1.1]"
+              >
                 Residências de <br className="hidden md:block" /> <span className="text-brand-accent italic font-light font-sans">Destaque.</span>
-              </h2>
+              </motion.h2>
             </div>
-            <p className="text-brand-blue/50 max-w-md font-light text-base md:text-lg italic leading-relaxed">
+            <motion.p
+              initial={{ opacity: 0, y: 18 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-40px" }}
+              transition={{ duration: 1.2, ease: [0.25, 0.46, 0.45, 0.94], delay: 0.24 }}
+              className="text-brand-blue/50 max-w-md font-light text-base md:text-lg italic leading-relaxed"
+            >
               "Uma seleção rigorosa de propriedades que personificam o luxo moderno e a excelência arquitetônica."
-            </p>
+            </motion.p>
           </div>
           
           {/* Collection Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-10">
-            {PROPERTIES.map((property) => (
+            {PROPERTIES.map((property, index) => (
               <motion.div
                 key={property.id}
                 layoutId={`property-card-${property.id}`}
-                whileHover={{ y: -12, scale: 1.01 }}
-                transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+                initial={{ opacity: 0, y: 32 }}
+                whileInView={{
+                  opacity: 1, y: 0,
+                  transition: {
+                    duration: 1.4,
+                    ease: [0.25, 0.46, 0.45, 0.94],
+                    delay: (index % 3) * 0.13,
+                  },
+                }}
+                viewport={{ once: true, margin: "-80px" }}
+                whileHover={{
+                  y: -10, scale: 1.01,
+                  transition: { duration: 0.55, ease: [0.16, 1, 0.3, 1] },
+                }}
                 className="group relative"
               >
                 <Link 
@@ -213,16 +247,37 @@ function HomePage() {
 export default function App() {
   return (
     <Router>
-      <main className="bg-brand-bg min-h-screen">
-        <Navbar />
-        <AnimatePresence mode="wait">
-          <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/property/:id" element={<PropertyPage />} />
-          </Routes>
-        </AnimatePresence>
-        <Footer />
-      </main>
+      <AuthProvider>
+        <Routes>
+          {/* Auth page — sem Navbar/Footer */}
+          <Route path="/auth" element={<AuthPage />} />
+
+          {/* Todas as outras rotas com layout padrão */}
+          <Route
+            path="*"
+            element={
+              <main className="bg-brand-bg min-h-screen">
+                <Navbar />
+                <AnimatePresence mode="wait">
+                  <Routes>
+                    <Route path="/" element={<HomePage />} />
+                    <Route path="/property/:id" element={<PropertyPage />} />
+                    <Route
+                      path="/dashboard"
+                      element={
+                        <ProtectedRoute allowedRoles={["admin", "corretor"]}>
+                          <Dashboard />
+                        </ProtectedRoute>
+                      }
+                    />
+                  </Routes>
+                </AnimatePresence>
+                <Footer />
+              </main>
+            }
+          />
+        </Routes>
+      </AuthProvider>
     </Router>
   );
 }

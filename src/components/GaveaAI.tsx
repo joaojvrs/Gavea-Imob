@@ -99,27 +99,46 @@ export default function GaveaAI() {
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-brand-accent/10 blur-[160px] rounded-full pointer-events-none" />
       
       <div className="max-w-4xl mx-auto relative z-10">
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1 }}
-          className="text-center mb-12"
-        >
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-brand-accent/10 text-brand-accent text-xs font-bold uppercase tracking-widest mb-6">
+        <div className="text-center mb-12">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-40px" }}
+            transition={{ duration: 1.1, ease: [0.25, 0.46, 0.45, 0.94] }}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-brand-accent/10 text-brand-accent text-xs font-bold uppercase tracking-widest mb-6"
+          >
             <Sparkles size={14} />
             Especialista Digital em Curadoria
-          </div>
-          <h2 className="text-4xl md:text-6xl font-display font-bold tracking-tighter mb-6 leading-tight text-brand-blue">
-            Inteligência ao seu serviço. <br /> 
+          </motion.div>
+          <motion.h2
+            initial={{ opacity: 0, y: 26 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-40px" }}
+            transition={{ duration: 1.3, ease: [0.25, 0.46, 0.45, 0.94], delay: 0.12 }}
+            className="text-4xl md:text-6xl font-display font-bold tracking-tighter mb-6 leading-tight text-brand-blue"
+          >
+            Inteligência ao seu serviço. <br />
             <span className="text-brand-accent italic font-light">Seu novo lar, descoberto.</span>
-          </h2>
-          <p className="text-brand-blue/50 text-xl font-light max-w-2xl mx-auto italic leading-relaxed">
+          </motion.h2>
+          <motion.p
+            initial={{ opacity: 0, y: 18 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-40px" }}
+            transition={{ duration: 1.2, ease: [0.25, 0.46, 0.45, 0.94], delay: 0.26 }}
+            className="text-brand-blue/50 text-xl font-light max-w-2xl mx-auto italic leading-relaxed"
+          >
             Nossa inteligência entende as nuances do seu estilo de vida para sugerir propriedades que realmente importam.
-          </p>
-        </motion.div>
+          </motion.p>
+        </div>
 
         {/* Chat Interface */}
-        <div className="bg-white/80 backdrop-blur-xl border border-brand-blue/5 rounded-[2rem] md:rounded-[2.5rem] overflow-hidden shadow-2xl shadow-brand-blue/10 flex flex-col min-h-[400px] md:min-h-[500px] max-h-[600px] md:max-h-[700px]">
+        <motion.div
+          initial={{ opacity: 0, y: 36 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-80px" }}
+          transition={{ duration: 1.4, ease: [0.25, 0.46, 0.45, 0.94], delay: 0.38 }}
+          className="bg-white/80 backdrop-blur-xl border border-brand-blue/5 rounded-[2rem] md:rounded-[2.5rem] overflow-hidden shadow-2xl shadow-brand-blue/10 flex flex-col min-h-[400px] md:min-h-[500px] max-h-[600px] md:max-h-[700px]"
+        >
           
           {/* Chat Messages */}
           <div className="flex-1 overflow-y-auto p-5 md:p-10 space-y-4 md:space-y-6 no-scrollbar">
@@ -219,7 +238,7 @@ export default function GaveaAI() {
               </button>
             </div>
           </div>
-        </div>
+        </motion.div>
       </div>
     </section>
   );
