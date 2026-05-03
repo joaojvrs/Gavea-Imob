@@ -20,6 +20,7 @@ export interface Property {
   image: string;
   gallery?: string[];
   tour360?: string[];
+  video_url?: string;
 }
 
 export const PROPERTIES: Property[] = [

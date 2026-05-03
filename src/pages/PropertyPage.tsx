@@ -8,8 +8,36 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, Maximize2, Shield, MapPin, Ruler, Bed, Bath, Sparkles, Car, Check, Video, Image as ImageIcon, X, Send, MessageSquare, ChevronLeft, ChevronRight } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { cn } from "@/src/lib/utils";
-import { PROPERTIES } from "../data/properties";
+import { PROPERTIES, Property } from "../data/properties";
 import PanoramaViewer from "@/src/components/PanoramaViewer";
+import { supabase } from "@/src/lib/supabase";
+
+function mapDbToProperty(db: Record<string, unknown>): Property {
+  return {
+    id:             db.id as string,
+    type:           (db.type as string) ?? "Apartamento",
+    title:          (db.title as string) ?? "",
+    location:       (db.location as string) ?? "",
+    neighborhood:   (db.neighborhood as string) ?? "",
+    city:           (db.city as string) ?? "",
+    state:          (db.state as string) ?? "",
+    area:           (db.area as number)      ?? 0,
+    bedrooms:       (db.bedrooms as number)  ?? 0,
+    bathrooms:      (db.bathrooms as number) ?? 0,
+    parking:        (db.parking as number)   ?? 0,
+    suites:         (db.suites as number)    ?? 0,
+    price:          (db.price as string)     ?? undefined,
+    description:    (db.description as string) ?? "",
+    features:       (db.features as string[])       ?? [],
+    infrastructure: (db.infrastructure as string[]) ?? [],
+    lazer:          (db.lazer as string[])          ?? [],
+    matchScore:     (db.match_score as number)      ?? 0,
+    image:          (db.image_url as string)        ?? "",
+    gallery:        (db.gallery_urls as string[])   ?? [],
+    tour360:        (db.tour360_urls as string[])   ?? [],
+    video_url:      (db.video_url as string)        ?? undefined,
+  };
+}
 
 // Compact AI Chat for Property Page
 function PropertyAIChat({ propertyTitle }: { propertyTitle: string }) {
@@ -99,9 +127,23 @@ export default function PropertyPage() {
   const [mediaType, setMediaType] = useState<'photo' | 'video' | 'tour'>('photo');
   const [tourIndex, setTourIndex] = useState(0);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [dbProperty, setDbProperty] = useState<Property | null>(null);
+  const [dbLoading, setDbLoading]   = useState(false);
   const isFirstMount = useRef(true);
 
-  const property = PROPERTIES.find(p => p.id === id);
+  const mockProperty = PROPERTIES.find(p => p.id === id);
+  const property = mockProperty ?? dbProperty;
+
+  useEffect(() => {
+    if (!mockProperty && id) {
+      setDbLoading(true);
+      supabase.from("properties").select("*").eq("id", id).single()
+        .then(({ data }) => {
+          if (data) setDbProperty(mapDbToProperty(data as Record<string, unknown>));
+          setDbLoading(false);
+        });
+    }
+  }, [id, mockProperty]);
 
   useEffect(() => {
     if (property?.tour360?.length) {
@@ -116,6 +158,18 @@ export default function PropertyPage() {
     }
     window.scrollTo(0, 0);
   }, [id]);
+
+  if (dbLoading) {
+    return (
+      <div className="pt-40 flex justify-center">
+        <div className="flex gap-1.5">
+          <span className="w-2 h-2 rounded-full bg-brand-accent animate-bounce [animation-delay:-0.3s]" />
+          <span className="w-2 h-2 rounded-full bg-brand-accent animate-bounce [animation-delay:-0.15s]" />
+          <span className="w-2 h-2 rounded-full bg-brand-accent animate-bounce" />
+        </div>
+      </div>
+    );
+  }
 
   if (!property) {
     return (
@@ -146,7 +200,7 @@ export default function PropertyPage() {
           playsInline
           className="h-full w-full object-cover grayscale-[0.2] brightness-[0.9] absolute inset-0 z-0"
         >
-          <source src="/videoimovel.mp4" type="video/mp4" />
+          <source src={property.video_url ?? "/videoimovel.mp4"} type="video/mp4" />
         </video>
       );
     }

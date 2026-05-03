@@ -7,7 +7,7 @@ import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "motion/react";
 import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
-import { SlidersHorizontal, ChevronDown, DollarSign, Bed, Bath, Ruler } from "lucide-react";
+import { ChevronDown, Bed, Bath, Ruler } from "lucide-react";
 import { cn } from "@/src/lib/utils";
 import Navbar from "./components/Navbar";
 import Hero from "./components/Hero";
@@ -16,229 +16,232 @@ import Footer from "./components/Footer";
 import PropertyPage from "./pages/PropertyPage";
 import AuthPage from "./pages/AuthPage";
 import Dashboard from "./pages/Dashboard";
+import ReelsPage from "./pages/ReelsPage";
 import { AuthProvider } from "./context/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { PROPERTIES } from "./data/properties";
 
+const PROPERTY_TYPES = ['Todos', 'Cobertura', 'Apartamento', 'Experiência 360'];
+
 function HomePage() {
-  const [filterOpen, setFilterOpen] = useState(false);
   const [sortBy, setSortBy] = useState('newest');
+  const [activeType, setActiveType] = useState('Todos');
   const location = useLocation();
 
   useEffect(() => {
-    // Handling scroll from navigation state
     if (location.state && (location.state as any).scrollTo) {
       const id = (location.state as any).scrollTo;
       setTimeout(() => {
-        const element = document.getElementById(id);
-        if (element) {
-          element.scrollIntoView({ behavior: "smooth" });
-        }
+        document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
       }, 100);
-      // Clear state to avoid scrolling on subsequent refreshes
       window.history.replaceState({}, document.title);
     }
   }, [location]);
 
+  const displayed = [...PROPERTIES]
+    .filter(p => activeType === 'Todos' || p.type === activeType)
+    .sort((a, b) => {
+      if (sortBy === 'area') return b.area - a.area;
+      if (sortBy === 'match') return b.matchScore - a.matchScore;
+      return 0;
+    });
+
   return (
     <>
       <Hero />
-      
-      {/* Search & Filter Bar */}
-      <section className="px-4 md:px-12 py-4 bg-white/40 backdrop-blur-md border-b border-brand-blue/5">
-        <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3 md:gap-4">
-          <div className="flex items-center gap-4 overflow-x-auto pb-1 md:pb-0 no-scrollbar">
-            <button 
-              onClick={() => setFilterOpen(!filterOpen)}
-              className={cn(
-                "flex items-center gap-2 px-5 md:px-6 py-2.5 rounded-full border border-brand-blue/10 bg-white transition-all hover:border-brand-accent group",
-                filterOpen && "bg-brand-blue text-white"
-              )}
-            >
-              <SlidersHorizontal size={16} className={cn("text-brand-accent md:w-[18px] md:h-[18px]", filterOpen && "text-white")} />
-              <span className="text-xs md:text-sm font-bold uppercase tracking-widest leading-none">Filtros</span>
-            </button>
-          </div>
 
-          <div className="flex items-center gap-2 md:gap-3">
-            <span className="text-[10px] uppercase tracking-[0.2em] font-bold text-brand-blue/30 hidden sm:block">Ordenar por</span>
-            <select 
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="bg-transparent border-none text-[12px] md:text-sm font-bold text-brand-blue/80 focus:ring-0 cursor-pointer appearance-none"
-            >
-              <option value="newest">Lançamentos</option>
-              <option value="price-desc">Maior Valor</option>
-              <option value="price-asc">Menor Valor</option>
-              <option value="area">Maior Metragem</option>
-            </select>
-            <ChevronDown size={14} className="text-brand-accent -ml-2 pointer-events-none" />
+      {/* ── Sticky type filter strip ── */}
+      <div className="sticky top-[64px] md:top-[80px] z-40 bg-white/95 backdrop-blur-2xl border-b border-brand-blue/8 shadow-[0_2px_20px_rgba(10,37,64,0.05)]">
+        <div className="max-w-7xl mx-auto px-5 md:px-12 flex items-center justify-between h-[50px]">
+          <div className="flex items-center gap-1 overflow-x-auto no-scrollbar">
+            {PROPERTY_TYPES.map(t => (
+              <button
+                key={t}
+                onClick={() => setActiveType(t)}
+                className={cn(
+                  "whitespace-nowrap px-4 py-1.5 rounded-full text-[9px] font-bold uppercase tracking-[0.15em] transition-all duration-300 flex-shrink-0",
+                  activeType === t
+                    ? "bg-brand-blue text-white"
+                    : "text-brand-blue/35 hover:text-brand-blue hover:bg-brand-blue/5"
+                )}
+                style={{ fontFamily: 'var(--font-heading)' }}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center gap-2 flex-shrink-0 pl-4">
+            <span className="text-[9px] uppercase tracking-[0.2em] font-bold text-brand-blue/25 hidden sm:block" style={{ fontFamily: 'var(--font-heading)' }}>
+              Ordenar
+            </span>
+            <div className="relative flex items-center">
+              <select
+                value={sortBy}
+                onChange={e => setSortBy(e.target.value)}
+                className="text-[9px] font-bold text-brand-blue/55 bg-transparent border-none focus:ring-0 cursor-pointer appearance-none pr-5 uppercase tracking-[0.12em]"
+                style={{ fontFamily: 'var(--font-heading)' }}
+              >
+                <option value="newest">Recentes</option>
+                <option value="match">Maior Match</option>
+                <option value="area">Maior Área</option>
+              </select>
+              <ChevronDown size={11} className="absolute right-0 text-brand-accent pointer-events-none" />
+            </div>
           </div>
         </div>
+      </div>
 
-        {/* Expanded Filters Pane */}
-        <AnimatePresence>
-          {filterOpen && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              className="overflow-hidden"
-            >
-              <div className="max-w-7xl mx-auto py-6 md:py-8 grid grid-cols-1 md:grid-cols-4 gap-6 md:gap-8">
-                <div className="space-y-4">
-                  <label className="text-[10px] uppercase font-bold tracking-widest text-brand-blue/40 flex items-center gap-2">
-                    <DollarSign size={12} /> Faixa de Preço
-                  </label>
-                  <div className="flex items-center gap-3">
-                    <input type="text" placeholder="Min" className="w-full bg-brand-slate/50 border border-brand-blue/5 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-brand-accent" />
-                    <span className="text-brand-blue/20">—</span>
-                    <input type="text" placeholder="Max" className="w-full bg-brand-slate/50 border border-brand-blue/5 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-brand-accent" />
-                  </div>
-                </div>
-                
-                <div className="space-y-4">
-                  <label className="text-[10px] uppercase font-bold tracking-widest text-brand-blue/40 flex items-center gap-2">
-                    <Bed size={12} /> Dormitórios
-                  </label>
-                  <div className="flex gap-2">
-                    {[1, 2, 3, 4, '5+'].map(num => (
-                      <button key={num} className="w-10 h-10 rounded-xl border border-brand-blue/5 flex items-center justify-center text-sm font-bold hover:bg-brand-blue hover:text-white transition-all">
-                        {num}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+      {/* ── Portfolio collection ── */}
+      <section id="collection">
 
-                <div className="space-y-4">
-                  <label className="text-[10px] uppercase font-bold tracking-widest text-brand-blue/40 flex items-center gap-2">
-                    <Bath size={12} /> Banheiros
-                  </label>
-                  <div className="flex gap-2">
-                    {[1, 2, 3, 4, '5+'].map(num => (
-                      <button key={num} className="w-10 h-10 rounded-xl border border-brand-blue/5 flex items-center justify-center text-sm font-bold hover:bg-brand-blue hover:text-white transition-all">
-                        {num}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <label className="text-[10px] uppercase font-bold tracking-widest text-brand-blue/40 flex items-center gap-2">
-                    <Ruler size={12} /> Área mínima (m²)
-                  </label>
-                  <input type="range" min="50" max="2000" className="w-full h-1 bg-brand-slate rounded-lg appearance-none cursor-pointer accent-brand-accent" />
-                  <div className="flex justify-between text-[10px] font-mono text-brand-blue/40">
-                    <span>50m²</span>
-                    <span>2000m²</span>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </section>
-
-      {/* Feature Sections Collection */}
-      <section id="collection" className="py-16 md:py-24 px-4 md:px-12 bg-white">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col md:flex-row justify-between items-end gap-6 md:gap-8 mb-12 md:mb-20">
-            <div className="max-w-xl">
-              <motion.span
-                initial={{ opacity: 0, y: 10 }}
+        {/* Dark editorial header */}
+        <div className="bg-brand-blue px-5 md:px-12 pt-20 md:pt-28 pb-20 md:pb-24">
+          <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-end md:justify-between gap-8 md:gap-16">
+            <div>
+              <motion.p
+                initial={{ opacity: 0, y: 8 }}
                 whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-40px" }}
-                transition={{ duration: 1.1, ease: [0.25, 0.46, 0.45, 0.94] }}
-                className="text-brand-accent font-display tracking-[0.2em] uppercase text-xs mb-3 md:mb-4 block font-bold"
+                viewport={{ once: true }}
+                transition={{ duration: 0.8, ease: [0.25, 0.46, 0.45, 0.94] }}
+                className="text-brand-accent text-[9px] font-bold uppercase tracking-[0.32em] mb-5"
+                style={{ fontFamily: 'var(--font-heading)' }}
               >
-                Curation Selection
-              </motion.span>
+                Curation Selection · {displayed.length} {displayed.length === 1 ? 'imóvel' : 'imóveis'}
+              </motion.p>
               <motion.h2
-                initial={{ opacity: 0, y: 24 }}
+                initial={{ opacity: 0, y: 28 }}
                 whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-40px" }}
-                transition={{ duration: 1.3, ease: [0.25, 0.46, 0.45, 0.94], delay: 0.12 }}
-                className="text-3xl md:text-6xl font-display font-bold tracking-tighter text-brand-blue leading-[1.1]"
+                viewport={{ once: true }}
+                transition={{ duration: 1.2, ease: [0.25, 0.46, 0.45, 0.94], delay: 0.08 }}
+                className="text-5xl md:text-7xl lg:text-8xl font-display font-bold tracking-[-0.03em] text-white leading-[0.90]"
               >
-                Residências de <br className="hidden md:block" /> <span className="text-brand-accent italic font-light font-sans">Destaque.</span>
+                Residências<br />
+                <span className="italic font-light text-brand-accent">de Destaque.</span>
               </motion.h2>
             </div>
             <motion.p
-              initial={{ opacity: 0, y: 18 }}
+              initial={{ opacity: 0, y: 16 }}
               whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-40px" }}
-              transition={{ duration: 1.2, ease: [0.25, 0.46, 0.45, 0.94], delay: 0.24 }}
-              className="text-brand-blue/50 max-w-md font-light text-base md:text-lg italic leading-relaxed"
+              viewport={{ once: true }}
+              transition={{ duration: 1.0, ease: [0.25, 0.46, 0.45, 0.94], delay: 0.2 }}
+              className="text-white/30 max-w-[280px] text-sm font-light leading-relaxed"
             >
-              "Uma seleção rigorosa de propriedades que personificam o luxo moderno e a excelência arquitetônica."
+              Uma seleção rigorosa de propriedades que personificam o luxo moderno e a excelência arquitetônica.
             </motion.p>
           </div>
-          
-          {/* Collection Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-10">
-            {PROPERTIES.map((property, index) => (
-              <motion.div
-                key={property.id}
-                layoutId={`property-card-${property.id}`}
-                initial={{ opacity: 0, y: 32 }}
-                whileInView={{
-                  opacity: 1, y: 0,
-                  transition: {
-                    duration: 1.4,
+        </div>
+
+        {/* Cards — editorial alternating grid */}
+        <div className="bg-[#F7F9FB] px-5 md:px-12 py-12 md:py-16">
+          <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
+            {displayed.map((property, index) => {
+              const isWide = index % 3 === 0;
+              return (
+                <motion.div
+                  key={property.id}
+                  layoutId={`property-card-${property.id}`}
+                  initial={{ opacity: 0, y: 36 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, margin: '-50px' }}
+                  transition={{
+                    duration: 1.2,
                     ease: [0.25, 0.46, 0.45, 0.94],
-                    delay: (index % 3) * 0.13,
-                  },
-                }}
-                viewport={{ once: true, margin: "-80px" }}
-                whileHover={{
-                  y: -10, scale: 1.01,
-                  transition: { duration: 0.55, ease: [0.16, 1, 0.3, 1] },
-                }}
-                className="group relative"
-              >
-                <Link 
-                  to={`/property/${property.id}`}
-                  className="block"
+                    delay: Math.min(index, 3) * 0.1,
+                  }}
+                  className={cn("group relative", isWide && "md:col-span-2")}
                 >
-                  <div className="aspect-[4/5] bg-brand-slate rounded-[2rem] md:rounded-[2.5rem] border border-brand-blue/5 overflow-hidden group relative cursor-pointer shadow-[0_10px_40px_rgba(10,37,64,0.02)] transition-all duration-700 group-hover:shadow-[0_40px_100px_rgba(10,37,64,0.12)]">
-                    <div className="absolute inset-0 bg-gradient-to-t from-brand-blue/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 z-10" />
-                    
-                    <div 
-                      className="w-full h-full bg-brand-slate bg-cover bg-center transition-transform duration-1000 group-hover:scale-110"
-                      style={{ backgroundImage: `url(${property.image})` }}
-                    />
-                    
-                    <div className="absolute bottom-6 left-6 md:bottom-8 md:left-8 z-20 transition-transform duration-500 group-hover:translate-x-2">
-                      <motion.h3 
-                        layoutId={`property-title-${property.id}`}
-                        className="text-xl md:text-2xl font-display font-bold text-white drop-shadow-md"
-                      >
-                        {property.title}
-                      </motion.h3>
-                      <motion.p 
-                        layoutId={`property-location-${property.id}`}
-                        className="text-white/80 text-xs md:text-sm font-light uppercase tracking-widest mt-1"
-                      >
-                        {property.location}
-                      </motion.p>
-                      <div className="flex gap-4 mt-3 text-[10px] text-white/60 font-mono tracking-widest">
-                        <span className="flex items-center gap-1"><Bed size={12} /> {property.bedrooms} QD</span>
-                        <span className="flex items-center gap-1"><Ruler size={12} /> {property.area}M²</span>
+                  <Link to={`/property/${property.id}`} className="block">
+                    <div className={cn(
+                      "relative overflow-hidden rounded-[2rem] md:rounded-[2.5rem] cursor-pointer h-[340px] md:h-[480px]",
+                      "shadow-[0_4px_28px_rgba(10,37,64,0.07)]",
+                      "transition-shadow duration-700 group-hover:shadow-[0_20px_60px_rgba(10,37,64,0.16)]"
+                    )}>
+
+                      {/* Photo */}
+                      <div
+                        className="absolute inset-0 bg-cover bg-center transition-transform duration-[1100ms] ease-out group-hover:scale-[1.05]"
+                        style={{ backgroundImage: `url(${property.image})` }}
+                      />
+
+                      {/* Permanent gradient */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/82 via-black/22 to-transparent" />
+
+                      {/* Top: type + match */}
+                      <div className="absolute top-5 left-5 right-5 flex items-center justify-between z-10">
+                        <span
+                          className="bg-black/25 backdrop-blur-lg border border-white/10 text-white/70 text-[8px] font-bold uppercase tracking-[0.22em] px-3.5 py-1.5 rounded-full"
+                          style={{ fontFamily: 'var(--font-heading)' }}
+                        >
+                          {property.type}
+                        </span>
+                        <span
+                          className="bg-brand-accent text-white text-[8px] font-black tracking-widest px-3 py-1.5 rounded-full"
+                          style={{ fontFamily: 'var(--font-heading)' }}
+                        >
+                          {property.matchScore}%
+                        </span>
+                      </div>
+
+                      {/* Bottom info block */}
+                      <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8 z-10">
+                        <p
+                          className="text-white/35 text-[8px] font-bold uppercase tracking-[0.28em] mb-2"
+                          style={{ fontFamily: 'var(--font-heading)' }}
+                        >
+                          {property.neighborhood} · {property.city}
+                        </p>
+
+                        <motion.h3
+                          layoutId={`property-title-${property.id}`}
+                          className={cn(
+                            "font-display font-bold text-white leading-tight tracking-tight mb-3",
+                            isWide ? "text-2xl md:text-3xl lg:text-4xl" : "text-xl md:text-2xl"
+                          )}
+                        >
+                          {property.title}
+                        </motion.h3>
+
+                        {/* Accent divider — grows on hover */}
+                        <div className="w-6 h-[1.5px] bg-brand-accent mb-4 transition-all duration-500 ease-out group-hover:w-12" />
+
+                        {/* Stats row */}
+                        <div className="flex items-center gap-4 md:gap-5 flex-wrap">
+                          <div className="flex items-center gap-1.5 text-white/45">
+                            <Bed size={10} />
+                            <span className="text-[10px] font-medium">{property.bedrooms} quartos</span>
+                          </div>
+                          <div className="flex items-center gap-1.5 text-white/45">
+                            <Bath size={10} />
+                            <span className="text-[10px] font-medium">{property.bathrooms} banheiros</span>
+                          </div>
+                          <div className="flex items-center gap-1.5 text-white/45">
+                            <Ruler size={10} />
+                            <span className="text-[10px] font-medium">{property.area} m²</span>
+                          </div>
+                          {property.price && (
+                            <span className="ml-auto font-display font-bold text-white text-lg md:text-2xl">
+                              {property.price}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* CTA — slides in on hover */}
+                        <div className="flex items-center gap-2 mt-4 text-brand-accent opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300 ease-out">
+                          <span className="text-[9px] font-bold uppercase tracking-[0.22em]" style={{ fontFamily: 'var(--font-heading)' }}>
+                            Ver propriedade
+                          </span>
+                          <span className="text-sm">→</span>
+                        </div>
                       </div>
                     </div>
-                    
-                    <div className="absolute top-6 right-6 md:top-8 md:right-8 z-20 bg-white/20 backdrop-blur-xl border border-white/30 px-3 py-1 md:px-4 md:py-1.5 rounded-full shadow-2xl transition-all duration-500 group-hover:bg-brand-accent group-hover:border-brand-accent">
-                      <span className="text-white text-[9px] md:text-[10px] font-bold font-mono uppercase tracking-widest leading-none">{property.matchScore}% STYLE MATCH</span>
-                    </div>
-                  </div>
-                </Link>
-              </motion.div>
-            ))}
+                  </Link>
+                </motion.div>
+              );
+            })}
           </div>
         </div>
       </section>
 
-      {/* AI Finder Section */}
       <GaveaAI />
     </>
   );
@@ -251,6 +254,9 @@ export default function App() {
         <Routes>
           {/* Auth page — sem Navbar/Footer */}
           <Route path="/auth" element={<AuthPage />} />
+
+          {/* Reels — fullscreen, sem Navbar/Footer */}
+          <Route path="/reels" element={<ReelsPage />} />
 
           {/* Todas as outras rotas com layout padrão */}
           <Route

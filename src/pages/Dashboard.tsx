@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "motion/react";
 import {
   Users, Building2, CheckCircle, XCircle, Clock, ShieldCheck,
   UserCircle, Plus, X, ChevronRight, AlertTriangle, Pencil,
-  ArchiveX, Loader2,
+  ArchiveX, Loader2, Upload,
 } from "lucide-react";
 import { supabase } from "@/src/lib/supabase";
 import { useAuth, Profile, UserRole, UserStatus } from "@/src/context/AuthContext";
@@ -16,24 +16,28 @@ interface DBProfile extends Profile {
 }
 
 interface DBProperty {
-  id:           string;
-  title:        string;
-  type:         string;
-  location:     string;
-  neighborhood: string | null;
-  city:         string | null;
-  state:        string | null;
-  area:         number | null;
-  bedrooms:     number | null;
-  bathrooms:    number | null;
-  parking:      number | null;
-  suites:       number | null;
-  price:        string | null;
-  description:  string | null;
-  image_url:    string | null;
-  status:       string;
-  created_by:   string | null;
-  created_at:   string;
+  id:            string;
+  title:         string;
+  type:          string;
+  location:      string;
+  neighborhood:  string | null;
+  city:          string | null;
+  state:         string | null;
+  area:          number | null;
+  bedrooms:      number | null;
+  bathrooms:     number | null;
+  parking:       number | null;
+  suites:        number | null;
+  price:         string | null;
+  description:   string | null;
+  image_url:     string | null;
+  gallery_urls:  string[] | null;
+  tour360_urls:  string[] | null;
+  video_url:     string | null;
+  match_score:   number | null;
+  status:        string;
+  created_by:    string | null;
+  created_at:    string;
 }
 
 type Tab = "users" | "properties";
@@ -363,8 +367,9 @@ const PROPERTY_TYPES = ["Apartamento", "Cobertura", "Casa", "Terreno", "Comercia
 
 function PropertyFormModal({ initial, onClose, onSaved }: PropertyFormModalProps) {
   const { user } = useAuth();
-  const [saving, setSaving] = useState(false);
-  const [error, setError]   = useState<string | null>(null);
+  const [saving, setSaving]   = useState(false);
+  const [error, setError]     = useState<string | null>(null);
+  const [uploadMsg, setUploadMsg] = useState("");
 
   const [form, setForm] = useState({
     title:        initial?.title        ?? "",
@@ -374,52 +379,126 @@ function PropertyFormModal({ initial, onClose, onSaved }: PropertyFormModalProps
     city:         initial?.city         ?? "",
     state:        initial?.state        ?? "",
     price:        initial?.price        ?? "",
-    area:         String(initial?.area     ?? ""),
-    bedrooms:     String(initial?.bedrooms ?? ""),
-    bathrooms:    String(initial?.bathrooms?? ""),
-    parking:      String(initial?.parking  ?? ""),
-    suites:       String(initial?.suites   ?? ""),
+    area:         String(initial?.area      ?? ""),
+    bedrooms:     String(initial?.bedrooms  ?? ""),
+    bathrooms:    String(initial?.bathrooms ?? ""),
+    parking:      String(initial?.parking   ?? ""),
+    suites:       String(initial?.suites    ?? ""),
     description:  initial?.description  ?? "",
     image_url:    initial?.image_url    ?? "",
     status:       initial?.status       ?? "active",
   });
 
-  const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
-    setForm(p => ({ ...p, [k]: e.target.value }));
+  const [mediaFiles, setMediaFiles] = useState<{
+    mainImage: File | null;
+    gallery:   File[];
+    tour360:   File[];
+    video:     File | null;
+  }>({ mainImage: null, gallery: [], tour360: [], video: null });
+
+  const set = (k: keyof typeof form) =>
+    (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
+      setForm(p => ({ ...p, [k]: e.target.value }));
+
+  const uploadToStorage = async (propertyId: string) => {
+    const bucket = supabase.storage.from("properties");
+    let imageUrl: string | null        = form.image_url || null;
+    let galleryUrls: string[]          = initial?.gallery_urls  ?? [];
+    let tour360Urls: string[]          = initial?.tour360_urls  ?? [];
+    let videoUrl:    string | null     = initial?.video_url     ?? null;
+
+    if (mediaFiles.mainImage) {
+      setUploadMsg("Enviando foto principal...");
+      const path = `${propertyId}/main/${mediaFiles.mainImage.name}`;
+      const { error: e } = await bucket.upload(path, mediaFiles.mainImage, { upsert: true });
+      if (!e) imageUrl = bucket.getPublicUrl(path).data.publicUrl;
+    }
+
+    if (mediaFiles.gallery.length > 0) {
+      setUploadMsg(`Enviando galeria (${mediaFiles.gallery.length} foto${mediaFiles.gallery.length !== 1 ? "s" : ""})...`);
+      const newUrls = await Promise.all(
+        mediaFiles.gallery.map(async (file, i) => {
+          const path = `${propertyId}/gallery/${Date.now()}_${i}_${file.name}`;
+          const { error: e } = await bucket.upload(path, file, { upsert: true });
+          if (e) return null;
+          return bucket.getPublicUrl(path).data.publicUrl;
+        })
+      );
+      galleryUrls = [...galleryUrls, ...(newUrls.filter(Boolean) as string[])];
+    }
+
+    if (mediaFiles.tour360.length > 0) {
+      setUploadMsg(`Enviando tour 360° (${mediaFiles.tour360.length} foto${mediaFiles.tour360.length !== 1 ? "s" : ""})...`);
+      const newUrls = await Promise.all(
+        mediaFiles.tour360.map(async (file, i) => {
+          const path = `${propertyId}/360/${Date.now()}_${i}_${file.name}`;
+          const { error: e } = await bucket.upload(path, file, { upsert: true });
+          if (e) return null;
+          return bucket.getPublicUrl(path).data.publicUrl;
+        })
+      );
+      tour360Urls = [...tour360Urls, ...(newUrls.filter(Boolean) as string[])];
+    }
+
+    if (mediaFiles.video) {
+      setUploadMsg("Enviando vídeo...");
+      const path = `${propertyId}/video/${mediaFiles.video.name}`;
+      const { error: e } = await bucket.upload(path, mediaFiles.video, { upsert: true });
+      if (!e) videoUrl = bucket.getPublicUrl(path).data.publicUrl;
+    }
+
+    return { imageUrl, galleryUrls, tour360Urls, videoUrl };
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setSaving(true);
 
-    const payload = {
-      title:        form.title,
-      type:         form.type,
-      location:     form.location,
-      neighborhood: form.neighborhood || null,
-      city:         form.city         || null,
-      state:        form.state        || null,
-      price:        form.price        || null,
-      area:         form.area         ? Number(form.area)      : null,
-      bedrooms:     form.bedrooms     ? Number(form.bedrooms)  : null,
-      bathrooms:    form.bathrooms    ? Number(form.bathrooms) : null,
-      parking:      form.parking      ? Number(form.parking)   : null,
-      suites:       form.suites       ? Number(form.suites)    : null,
-      description:  form.description  || null,
-      image_url:    form.image_url    || null,
-      status:       form.status,
-    };
+    try {
+      const propertyId = initial?.id ?? crypto.randomUUID();
+      const { imageUrl, galleryUrls, tour360Urls, videoUrl } = await uploadToStorage(propertyId);
 
-    let err;
-    if (initial) {
-      ({ error: err } = await supabase.from("properties").update(payload).eq("id", initial.id));
-    } else {
-      ({ error: err } = await supabase.from("properties").insert({ ...payload, created_by: user?.id }));
+      setUploadMsg("Salvando imóvel...");
+
+      const payload = {
+        title:        form.title,
+        type:         form.type,
+        location:     form.location,
+        neighborhood: form.neighborhood || null,
+        city:         form.city         || null,
+        state:        form.state        || null,
+        price:        form.price        || null,
+        area:         form.area         ? Number(form.area)      : null,
+        bedrooms:     form.bedrooms     ? Number(form.bedrooms)  : null,
+        bathrooms:    form.bathrooms    ? Number(form.bathrooms) : null,
+        parking:      form.parking      ? Number(form.parking)   : null,
+        suites:       form.suites       ? Number(form.suites)    : null,
+        description:  form.description  || null,
+        image_url:    imageUrl,
+        gallery_urls: galleryUrls.length  > 0 ? galleryUrls  : null,
+        tour360_urls: tour360Urls.length  > 0 ? tour360Urls  : null,
+        video_url:    videoUrl,
+        status:       form.status,
+      };
+
+      let err;
+      if (initial) {
+        ({ error: err } = await supabase.from("properties").update(payload).eq("id", initial.id));
+      } else {
+        ({ error: err } = await supabase.from("properties").insert({ id: propertyId, ...payload, created_by: user?.id }));
+      }
+
+      if (err) { setError(err.message); setSaving(false); setUploadMsg(""); return; }
+      onSaved();
+    } catch {
+      setError("Erro ao fazer upload das mídias. Verifique o bucket 'properties' no Supabase.");
+      setSaving(false);
+      setUploadMsg("");
     }
-
-    if (err) { setError(err.message); setSaving(false); return; }
-    onSaved();
   };
+
+  const mediaDropClass = "flex items-center gap-3 w-full border-2 border-dashed border-brand-blue/10 rounded-xl px-4 py-3 cursor-pointer hover:border-brand-accent/30 hover:bg-white transition-colors bg-brand-slate";
 
   return (
     <motion.div
@@ -507,10 +586,10 @@ function PropertyFormModal({ initial, onClose, onSaved }: PropertyFormModalProps
           {/* Quartos + Banheiros + Vagas + Suítes */}
           <div className="grid grid-cols-4 gap-3">
             {([
-              ["Quartos",  "bedrooms",  "3"],
-              ["Banheiros","bathrooms", "4"],
-              ["Vagas",    "parking",   "2"],
-              ["Suítes",   "suites",    "2"],
+              ["Quartos",   "bedrooms",  "3"],
+              ["Banheiros", "bathrooms", "4"],
+              ["Vagas",     "parking",   "2"],
+              ["Suítes",    "suites",    "2"],
             ] as [string, keyof typeof form, string][]).map(([label, key, ph]) => (
               <FormField key={key} label={label}>
                 <input type="number" min={0} value={form[key]} onChange={set(key)}
@@ -526,10 +605,67 @@ function PropertyFormModal({ initial, onClose, onSaved }: PropertyFormModalProps
               className={cn(inputClass, "resize-none")} />
           </FormField>
 
-          {/* URL da imagem */}
-          <FormField label="URL da Imagem principal">
+          {/* ── Mídia ───────────────────────────────────────── */}
+          <div className="flex items-center gap-3 pt-1">
+            <div className="flex-1 h-px bg-brand-blue/5" />
+            <span className="text-[9px] uppercase tracking-widest font-bold text-brand-blue/25"
+              style={{ fontFamily: "var(--font-heading)" }}>Mídia</span>
+            <div className="flex-1 h-px bg-brand-blue/5" />
+          </div>
+
+          {/* Foto principal */}
+          <FormField label="Foto Principal">
+            <label className={mediaDropClass}>
+              <input type="file" accept="image/*" className="hidden"
+                onChange={e => setMediaFiles(p => ({ ...p, mainImage: e.target.files?.[0] ?? null }))} />
+              <Upload size={14} className="text-brand-blue/30 flex-shrink-0" />
+              <span className="text-xs text-brand-blue/45 truncate">
+                {mediaFiles.mainImage ? mediaFiles.mainImage.name : "Selecionar imagem principal"}
+              </span>
+            </label>
             <input type="url" value={form.image_url} onChange={set("image_url")}
-              placeholder="https://..." className={inputClass} />
+              placeholder="Ou cole uma URL de imagem..."
+              className={cn(inputClass, "mt-2 text-xs")} />
+          </FormField>
+
+          {/* Galeria */}
+          <FormField label={`Galeria de Fotos${initial?.gallery_urls?.length ? ` · ${initial.gallery_urls.length} existente${initial.gallery_urls.length !== 1 ? "s" : ""}` : ""}`}>
+            <label className={mediaDropClass}>
+              <input type="file" accept="image/*" multiple className="hidden"
+                onChange={e => setMediaFiles(p => ({ ...p, gallery: Array.from(e.target.files ?? []) }))} />
+              <Upload size={14} className="text-brand-blue/30 flex-shrink-0" />
+              <span className="text-xs text-brand-blue/45">
+                {mediaFiles.gallery.length > 0
+                  ? `${mediaFiles.gallery.length} foto${mediaFiles.gallery.length !== 1 ? "s" : ""} selecionada${mediaFiles.gallery.length !== 1 ? "s" : ""}`
+                  : "Selecionar fotos da galeria"}
+              </span>
+            </label>
+          </FormField>
+
+          {/* Tour 360 */}
+          <FormField label={`Tour Virtual 360°${initial?.tour360_urls?.length ? ` · ${initial.tour360_urls.length} existente${initial.tour360_urls.length !== 1 ? "s" : ""}` : ""}`}>
+            <label className={mediaDropClass}>
+              <input type="file" accept="image/*" multiple className="hidden"
+                onChange={e => setMediaFiles(p => ({ ...p, tour360: Array.from(e.target.files ?? []) }))} />
+              <Upload size={14} className="text-brand-blue/30 flex-shrink-0" />
+              <span className="text-xs text-brand-blue/45">
+                {mediaFiles.tour360.length > 0
+                  ? `${mediaFiles.tour360.length} foto${mediaFiles.tour360.length !== 1 ? "s" : ""} 360° selecionada${mediaFiles.tour360.length !== 1 ? "s" : ""}`
+                  : "Selecionar fotos panorâmicas 360°"}
+              </span>
+            </label>
+          </FormField>
+
+          {/* Vídeo */}
+          <FormField label={`Vídeo do Imóvel${initial?.video_url ? " · 1 existente" : ""}`}>
+            <label className={mediaDropClass}>
+              <input type="file" accept="video/*" className="hidden"
+                onChange={e => setMediaFiles(p => ({ ...p, video: e.target.files?.[0] ?? null }))} />
+              <Upload size={14} className="text-brand-blue/30 flex-shrink-0" />
+              <span className="text-xs text-brand-blue/45 truncate">
+                {mediaFiles.video ? mediaFiles.video.name : "Selecionar vídeo do imóvel"}
+              </span>
+            </label>
           </FormField>
 
           {error && (
@@ -546,7 +682,9 @@ function PropertyFormModal({ initial, onClose, onSaved }: PropertyFormModalProps
               whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }}
               className="flex-1 flex items-center justify-center gap-2 bg-brand-blue text-white py-3 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-brand-accent transition-all duration-400 disabled:opacity-50"
               style={{ fontFamily: "var(--font-heading)" }}>
-              {saving ? <><Loader2 size={14} className="animate-spin" /> Salvando...</> : "Salvar Imóvel"}
+              {saving
+                ? <><Loader2 size={14} className="animate-spin" />{uploadMsg || "Salvando..."}</>
+                : "Salvar Imóvel"}
             </motion.button>
           </div>
         </form>

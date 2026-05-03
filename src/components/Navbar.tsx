@@ -11,9 +11,10 @@ import { cn } from "@/src/lib/utils";
 import { useAuth, UserRole } from "@/src/context/AuthContext";
 
 const NAV_LINKS = [
-  { label: "Portfólio", id: "collection" },
-  { label: "Gávea AI", id: "visionary" },
-  { label: "Sobre", id: "about" },
+  { label: "Portfólio", id: "collection", to: null },
+  { label: "Gávea AI", id: "visionary", to: null },
+  { label: "Reels", id: "reels", to: "/reels" },
+  { label: "Sobre", id: "about", to: null },
 ];
 
 const ROLE_ICON: Record<UserRole, React.ElementType> = {
@@ -58,13 +59,20 @@ export default function Navbar() {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  const handleLinkClick = (e: React.MouseEvent<HTMLAnchorElement>, id: string) => {
+  const handleLinkClick = (
+    e: React.MouseEvent<HTMLAnchorElement>,
+    item: { id: string; to: string | null }
+  ) => {
     e.preventDefault();
     setMobileOpen(false);
+    if (item.to) {
+      navigate(item.to);
+      return;
+    }
     if (location.pathname !== "/") {
-      navigate("/", { state: { scrollTo: id } });
+      navigate("/", { state: { scrollTo: item.id } });
     } else {
-      document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
+      document.getElementById(item.id)?.scrollIntoView({ behavior: "smooth" });
     }
   };
 
@@ -108,15 +116,15 @@ export default function Navbar() {
 
           {/* Desktop nav links */}
           <div className="hidden md:flex items-center gap-10">
-            {NAV_LINKS.map(({ label, id }) => (
+            {NAV_LINKS.map((item) => (
               <a
-                key={id}
-                href={`#${id}`}
-                onClick={(e) => handleLinkClick(e, id)}
+                key={item.id}
+                href={item.to ?? `#${item.id}`}
+                onClick={(e) => handleLinkClick(e, item)}
                 className="relative group text-white/55 hover:text-white text-[10px] font-semibold uppercase tracking-[0.18em] transition-colors duration-300"
                 style={{ fontFamily: "var(--font-heading)" }}
               >
-                {label}
+                {item.label}
                 <span className="absolute -bottom-0.5 left-0 w-0 h-px bg-brand-accent group-hover:w-full transition-all duration-400 rounded-full" />
               </a>
             ))}
@@ -257,18 +265,18 @@ export default function Navbar() {
 
             {/* Nav links */}
             <nav className="flex flex-col items-center gap-8">
-              {NAV_LINKS.map(({ label, id }, i) => (
+              {NAV_LINKS.map((item, i) => (
                 <motion.a
-                  key={id}
-                  href={`#${id}`}
-                  onClick={(e) => handleLinkClick(e, id)}
+                  key={item.id}
+                  href={item.to ?? `#${item.id}`}
+                  onClick={(e) => handleLinkClick(e, item)}
                   initial={{ opacity: 0, y: 30, filter: "blur(8px)" }}
                   animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
                   transition={{ delay: 0.2 + i * 0.1, duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
                   className="text-white text-5xl font-black tracking-tight hover:text-brand-accent transition-colors duration-300"
                   style={{ fontFamily: "var(--font-heading)" }}
                 >
-                  {label}
+                  {item.label}
                 </motion.a>
               ))}
             </nav>

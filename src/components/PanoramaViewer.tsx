@@ -14,6 +14,7 @@ export default function PanoramaViewer({ images, activeIndex }: PanoramaViewerPr
   const controlsRef = useRef<OrbitControls | null>(null);
   const meshRef = useRef<THREE.Mesh<THREE.SphereGeometry, THREE.MeshBasicMaterial> | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -93,25 +94,29 @@ export default function PanoramaViewer({ images, activeIndex }: PanoramaViewerPr
     if (!targetImage || !meshRef.current || !rendererRef.current) return;
 
     setLoading(true);
+    setLoadError(false);
     const loader = new THREE.TextureLoader();
 
     loader.load(
       targetImage,
       (texture) => {
-        // ATUALIZADO: De encoding para colorSpace
         texture.colorSpace = THREE.SRGBColorSpace;
-        
         texture.anisotropy = rendererRef.current?.capabilities.getMaxAnisotropy() ?? 1;
-        texture.wrapS = THREE.RepeatWrapping;
-        texture.wrapT = THREE.RepeatWrapping;
+        texture.wrapS = THREE.ClampToEdgeWrapping;
+        texture.wrapT = THREE.ClampToEdgeWrapping;
         if (meshRef.current) {
           meshRef.current.material.map = texture;
+          meshRef.current.material.color.set(0xffffff);
           meshRef.current.material.needsUpdate = true;
         }
         setLoading(false);
       },
       undefined,
-      () => setLoading(false),
+      (err) => {
+        console.error("[PanoramaViewer] Falha ao carregar textura:", targetImage, err);
+        setLoading(false);
+        setLoadError(true);
+      },
     );
   }, [activeIndex, images]);
 
@@ -120,6 +125,12 @@ export default function PanoramaViewer({ images, activeIndex }: PanoramaViewerPr
       {loading && (
         <div className="absolute inset-0 flex items-center justify-center text-white text-sm tracking-[0.25em] uppercase z-10 pointer-events-none">
           Carregando tour 360...
+        </div>
+      )}
+      {loadError && !loading && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center text-white/60 text-xs tracking-widest uppercase z-10 pointer-events-none gap-2">
+          <span className="text-2xl">⚠</span>
+          Imagem não pôde ser carregada
         </div>
       )}
     </div>
