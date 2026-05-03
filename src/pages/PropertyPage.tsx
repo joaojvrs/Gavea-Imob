@@ -5,10 +5,11 @@
 
 import { motion, AnimatePresence } from "motion/react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, Maximize2, Shield, MapPin, Ruler, Bed, Bath, Sparkles, Car, Check, Video, Image as ImageIcon, X, Send, MessageSquare } from "lucide-react";
+import { ArrowLeft, Maximize2, Shield, MapPin, Ruler, Bed, Bath, Sparkles, Car, Check, Video, Image as ImageIcon, X, Send, MessageSquare, ChevronLeft, ChevronRight } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { cn } from "@/src/lib/utils";
 import { PROPERTIES } from "../data/properties";
+import PanoramaViewer from "@/src/components/PanoramaViewer";
 
 // Compact AI Chat for Property Page
 function PropertyAIChat({ propertyTitle }: { propertyTitle: string }) {
@@ -20,7 +21,6 @@ function PropertyAIChat({ propertyTitle }: { propertyTitle: string }) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Only scroll if there are more than the initial greeting message or it's loading
     if (messages.length > 1 || isLoading) {
       scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
@@ -32,7 +32,6 @@ function PropertyAIChat({ propertyTitle }: { propertyTitle: string }) {
     setInput("");
     setIsLoading(true);
     
-    // Simulate AI response
     setTimeout(() => {
       setMessages(prev => [...prev, { 
         id: (Date.now()+1).toString(), 
@@ -97,11 +96,18 @@ export default function PropertyPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [selectedRoom, setSelectedRoom] = useState('Geral');
-  const [mediaType, setMediaType] = useState<'photo' | 'video'>('photo');
+  const [mediaType, setMediaType] = useState<'photo' | 'video' | 'tour'>('photo');
+  const [tourIndex, setTourIndex] = useState(0);
   const [isExpanded, setIsExpanded] = useState(false);
   const isFirstMount = useRef(true);
 
   const property = PROPERTIES.find(p => p.id === id);
+
+  useEffect(() => {
+    if (property?.tour360?.length) {
+      setTourIndex(0);
+    }
+  }, [property?.id]);
 
   useEffect(() => {
     if (isFirstMount.current) {
@@ -127,25 +133,71 @@ export default function PropertyPage() {
     { id: 'Gourmet', name: 'Área Gourmet', path: 'M 50 210 L 250 210 L 250 350 L 50 350 Z', area: '60m²' },
   ];
 
-  const MediaContent = () => (
-    mediaType === 'photo' ? (
-      <img 
-        src={property.image} 
+  const tourImages = property.tour360 ?? [];
+  const photoSource = property.gallery?.[0] ?? property.image;
+
+  const MediaContent = () => {
+    if (mediaType === 'video') {
+      return (
+        <video
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="h-full w-full object-cover grayscale-[0.2] brightness-[0.9] absolute inset-0 z-0"
+        >
+          <source src="/videoimovel.mp4" type="video/mp4" />
+        </video>
+      );
+    }
+
+    if (mediaType === 'tour' && tourImages.length > 0) {
+      return (
+        <div className="absolute inset-0 z-0 bg-black overflow-hidden">
+          {/* Componente encapsulado para garantir que os eventos de drag do mouse funcionem */}
+          <div className="w-full h-full cursor-grab active:cursor-grabbing">
+            <PanoramaViewer images={tourImages} activeIndex={tourIndex} />
+          </div>
+          
+          <div className="absolute inset-x-0 top-6 flex items-center justify-between px-4 md:px-8 pointer-events-none z-10">
+            <span className="bg-black/50 backdrop-blur-md text-white text-[10px] uppercase tracking-[0.3em] font-bold px-3 py-1 rounded-full">Tour 360</span>
+            <span className="bg-black/50 backdrop-blur-md text-white text-[10px] uppercase tracking-[0.3em] font-bold px-3 py-1 rounded-full">{tourIndex + 1}/{tourImages.length}</span>
+          </div>
+          
+          {tourImages.length > 1 && (
+            <>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setTourIndex((prev) => (prev - 1 + tourImages.length) % tourImages.length);
+                }}
+                className="absolute left-4 top-1/2 -translate-y-1/2 z-20 rounded-full bg-black/40 p-3 text-white hover:bg-black/80 transition shadow-lg backdrop-blur-sm cursor-pointer"
+              >
+                <ChevronLeft size={20} />
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setTourIndex((prev) => (prev + 1) % tourImages.length);
+                }}
+                className="absolute right-4 top-1/2 -translate-y-1/2 z-20 rounded-full bg-black/40 p-3 text-white hover:bg-black/80 transition shadow-lg backdrop-blur-sm cursor-pointer"
+              >
+                <ChevronRight size={20} />
+              </button>
+            </>
+          )}
+        </div>
+      );
+    }
+
+    return (
+      <img
+        src={photoSource}
         alt={property.title}
-        className="h-full w-full object-cover grayscale-[0.2] brightness-[0.9] transition-transform duration-1000 group-hover:scale-105"
+        className="absolute inset-0 z-0 h-full w-full object-cover grayscale-[0.2] brightness-[0.9] transition-transform duration-1000 group-hover:scale-105"
       />
-    ) : (
-      <video
-        autoPlay
-        loop
-        muted
-        playsInline
-        className="h-full w-full object-cover grayscale-[0.2] brightness-[0.9]"
-      >
-        <source src="/videoimovel.mp4" type="video/mp4" />
-      </video>
-    )
-  );
+    );
+  };
 
   return (
     <motion.main 
@@ -165,7 +217,7 @@ export default function PropertyPage() {
           >
             <button 
               onClick={() => setIsExpanded(false)}
-              className="absolute top-8 right-8 text-white z-[110] hover:scale-110 transition-transform p-2 bg-white/10 rounded-full"
+              className="absolute top-8 right-8 text-white z-[120] hover:scale-110 transition-transform p-2 bg-white/10 rounded-full cursor-pointer"
             >
               <X size={32} />
             </button>
@@ -229,66 +281,76 @@ export default function PropertyPage() {
           transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
           className="max-w-7xl mx-auto aspect-[4/5] sm:aspect-video md:aspect-[21/9] bg-brand-slate rounded-[2rem] md:rounded-[2.5rem] overflow-hidden relative group shadow-2xl"
         >
-          <div className="absolute inset-0 z-0">
-            <MediaContent />
-            
-            {/* Visual Tour HUD Overlay */}
-            <div className="absolute inset-0 flex flex-col justify-between p-4 md:p-10 z-10 pointer-events-none">
-                <div className="flex justify-between items-start">
-                    <div className="flex flex-col gap-3 md:gap-4">
-                      <div className="bg-black/20 backdrop-blur-xl border border-white/10 px-3 py-1.5 md:px-4 md:py-2 rounded-full inline-flex items-center gap-2 pointer-events-auto">
-                          <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-brand-accent rounded-full animate-pulse" />
-                          <span className="text-[8px] md:text-[10px] font-bold text-white uppercase tracking-widest">Vision 8K Experience</span>
-                      </div>
-                      
-                      <div className="flex bg-black/40 backdrop-blur-xl border border-white/10 rounded-full p-0.5 md:p-1 self-start pointer-events-auto">
-                        <button 
-                          onClick={() => setMediaType('photo')}
-                          className={cn(
-                            "px-3 py-1.5 md:px-4 md:py-2 rounded-full text-[8px] md:text-[10px] font-bold uppercase tracking-widest transition-all flex items-center gap-1.5 md:gap-2",
-                            mediaType === 'photo' ? "bg-white text-brand-blue shadow-lg" : "text-white/60 hover:text-white"
-                          )}
-                        >
-                          <ImageIcon size={12} className="md:w-[14px] md:h-[14px]" /> Fotos
-                        </button>
-                        <button 
-                          onClick={() => setMediaType('video')}
-                          className={cn(
-                            "px-3 py-1.5 md:px-4 md:py-2 rounded-full text-[8px] md:text-[10px] font-bold uppercase tracking-widest transition-all flex items-center gap-1.5 md:gap-2",
-                            mediaType === 'video' ? "bg-white text-brand-blue shadow-lg" : "text-white/60 hover:text-white"
-                          )}
-                        >
-                          <Video size={12} className="md:w-[14px] md:h-[14px]" /> Vídeos
-                        </button>
-                      </div>
-                    </div>
-                    
-                    <button 
-                      onClick={() => setIsExpanded(true)}
-                      className="bg-black/20 backdrop-blur-xl border border-white/10 p-2 md:p-3 rounded-full text-white pointer-events-auto hover:bg-white hover:text-brand-blue transition-all active:scale-95"
-                    >
-                        <Maximize2 size={20} className="md:w-6 md:h-6" />
-                    </button>
+          {/* Media Content layer */}
+          <MediaContent />
+          
+          {/* Visual Tour HUD Overlay */}
+          <div className="absolute inset-0 flex flex-col justify-between p-4 md:p-10 pointer-events-none z-30">
+            <div className="flex justify-between items-start">
+              <div className="flex flex-col gap-3 md:gap-4">
+                <div className="bg-black/20 backdrop-blur-xl border border-white/10 px-3 py-1.5 md:px-4 md:py-2 rounded-full inline-flex items-center gap-2 pointer-events-auto shadow-lg">
+                  <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-brand-accent rounded-full animate-pulse" />
+                  <span className="text-[8px] md:text-[10px] font-bold text-white uppercase tracking-widest">Vision 8K Experience</span>
                 </div>
                 
-                <div className="flex justify-center">
-                    <div className="bg-black/40 backdrop-blur-2xl border border-white/10 p-1 md:p-1.5 rounded-full flex gap-1 pointer-events-auto shadow-2xl overflow-x-auto no-scrollbar max-w-full px-2 md:px-1.5">
-                        {roomsData.map(room => (
-                            <button 
-                                key={room.id}
-                                onClick={() => setSelectedRoom(room.id)}
-                                className={cn(
-                                    "px-4 md:px-6 py-2 rounded-full text-[10px] uppercase tracking-widest font-bold transition-all font-mono whitespace-nowrap",
-                                    selectedRoom === room.id 
-                                        ? "bg-brand-accent text-white shadow-lg" 
-                                        : "text-white/60 hover:text-white hover:bg-white/10"
-                                )}
-                            >
-                                {room.name}
-                            </button>
-                        ))}
-                    </div>
+                <div className="flex bg-black/40 backdrop-blur-xl border border-white/10 rounded-full p-0.5 md:p-1 self-start pointer-events-auto shadow-lg">
+                  <button 
+                    onClick={() => setMediaType('photo')}
+                    className={cn(
+                      "px-3 py-1.5 md:px-4 md:py-2 rounded-full text-[8px] md:text-[10px] font-bold uppercase tracking-widest transition-all flex items-center gap-1.5 md:gap-2",
+                      mediaType === 'photo' ? "bg-white text-brand-blue shadow-lg" : "text-white/60 hover:text-white"
+                    )}
+                  >
+                    <ImageIcon size={12} className="md:w-[14px] md:h-[14px]" /> Fotos
+                  </button>
+                  <button 
+                    onClick={() => setMediaType('video')}
+                    className={cn(
+                      "px-3 py-1.5 md:px-4 md:py-2 rounded-full text-[8px] md:text-[10px] font-bold uppercase tracking-widest transition-all flex items-center gap-1.5 md:gap-2",
+                      mediaType === 'video' ? "bg-white text-brand-blue shadow-lg" : "text-white/60 hover:text-white"
+                    )}
+                  >
+                    <Video size={12} className="md:w-[14px] md:h-[14px]" /> Vídeos
+                  </button>
+                  {property.tour360?.length ? (
+                    <button 
+                      onClick={() => setMediaType('tour')}
+                      className={cn(
+                        "px-3 py-1.5 md:px-4 md:py-2 rounded-full text-[8px] md:text-[10px] font-bold uppercase tracking-widest transition-all flex items-center gap-1.5 md:gap-2",
+                        mediaType === 'tour' ? "bg-white text-brand-blue shadow-lg" : "text-white/60 hover:text-white"
+                      )}
+                    >
+                      <ImageIcon size={12} className="md:w-[14px] md:h-[14px]" /> Tour 360
+                    </button>
+                  ) : null}
                 </div>
+              </div>
+              
+              <button 
+                onClick={() => setIsExpanded(true)}
+                className="bg-black/20 backdrop-blur-xl border border-white/10 p-2 md:p-3 rounded-full text-white pointer-events-auto hover:bg-white hover:text-brand-blue transition-all active:scale-95 shadow-lg"
+              >
+                  <Maximize2 size={20} className="md:w-6 md:h-6" />
+              </button>
+            </div>
+            
+            <div className="flex justify-center pointer-events-none">
+              <div className="bg-black/40 backdrop-blur-2xl border border-white/10 p-1 md:p-1.5 rounded-full flex gap-1 pointer-events-auto shadow-2xl overflow-x-auto no-scrollbar max-w-full px-2 md:px-1.5">
+                {roomsData.map(room => (
+                  <button 
+                    key={room.id}
+                    onClick={() => setSelectedRoom(room.id)}
+                    className={cn(
+                      "px-4 md:px-6 py-2 rounded-full text-[10px] uppercase tracking-widest font-bold transition-all font-mono whitespace-nowrap",
+                      selectedRoom === room.id 
+                        ? "bg-brand-accent text-white shadow-lg" 
+                        : "text-white/60 hover:text-white hover:bg-white/10"
+                    )}
+                  >
+                    {room.name}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </motion.div>

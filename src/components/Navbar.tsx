@@ -38,6 +38,9 @@ export default function Navbar() {
   const location = useLocation();
   const { user, profile, loading, signOut } = useAuth();
 
+  // Verifica se o usuário está na página inicial
+  const isHome = location.pathname === "/";
+
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40);
     window.addEventListener("scroll", onScroll, { passive: true });
@@ -74,6 +77,9 @@ export default function Navbar() {
 
   const RoleIcon = profile ? ROLE_ICON[profile.role] : (user ? UserCircle : UserCircle);
 
+  // A navbar deve ser escura se rolar a página OU se não estiver na página inicial
+  const shouldBeDark = scrolled || !isHome;
+
   return (
     <>
       <motion.nav
@@ -81,8 +87,8 @@ export default function Navbar() {
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 1.1, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
         className={cn(
-          "fixed top-0 left-0 right-0 z-50 transition-all duration-700",
-          scrolled
+          "fixed top-0 left-0 right-0 z-[999] transition-all duration-700",
+          shouldBeDark
             ? "bg-brand-blue/95 backdrop-blur-2xl border-b border-white/5 shadow-[0_1px_50px_rgba(10,37,64,0.5)]"
             : "bg-transparent"
         )}
@@ -94,7 +100,7 @@ export default function Navbar() {
             <motion.img
               src="/logo gavea.webp"
               alt="Gávea"
-              animate={{ height: scrolled ? 44 : 52 }}
+              animate={{ height: shouldBeDark ? 44 : 52 }}
               transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
               className="w-auto object-contain transition-opacity group-hover:opacity-80"
             />
@@ -221,7 +227,7 @@ export default function Navbar() {
             animate={{ opacity: 1, clipPath: "circle(150% at calc(100% - 40px) 40px)" }}
             exit={{ opacity: 0, clipPath: "circle(0% at calc(100% - 40px) 40px)" }}
             transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-            className="fixed inset-0 z-[100] bg-brand-blue flex flex-col items-center justify-center"
+            className="fixed inset-0 z-[1000] bg-brand-blue flex flex-col items-center justify-center"
           >
             {/* Close */}
             <motion.button
