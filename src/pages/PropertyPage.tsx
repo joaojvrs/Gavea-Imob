@@ -6,11 +6,91 @@
 import { motion, AnimatePresence } from "motion/react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, Maximize2, Shield, MapPin, Ruler, Bed, Bath, Sparkles, Car, Check, Video, Image as ImageIcon, X, Send, MessageSquare, ChevronLeft, ChevronRight } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Dispatch, SetStateAction } from "react";
 import { cn } from "@/src/lib/utils";
-import { PROPERTIES, Property } from "../data/properties";
+import { PROPERTIES, Property, TourScene } from "../data/properties";
 import PanoramaViewer from "@/src/components/PanoramaViewer";
+import VirtualTour from "@/src/components/VirtualTour";
 import { supabase } from "@/src/lib/supabase";
+
+interface MediaContentProps {
+  mediaType: 'photo' | 'video' | 'tour';
+  tourScenes?: TourScene[];
+  tourImages: string[];
+  tourIndex: number;
+  setTourIndex: Dispatch<SetStateAction<number>>;
+  photoSource: string;
+  videoUrl?: string;
+  propertyTitle: string;
+}
+
+function MediaContent({ mediaType, tourScenes, tourImages, tourIndex, setTourIndex, photoSource, videoUrl, propertyTitle }: MediaContentProps) {
+  if (mediaType === 'video') {
+    return (
+      <video
+        autoPlay
+        loop
+        muted
+        playsInline
+        className="h-full w-full object-cover grayscale-[0.2] brightness-[0.9] absolute inset-0 z-0"
+      >
+        <source src={videoUrl ?? "/videoimovel.mp4"} type="video/mp4" />
+      </video>
+    );
+  }
+
+  if (mediaType === 'tour') {
+    // Full virtual tour with clickable hotspots
+    if (tourScenes && tourScenes.length > 0) {
+      return (
+        <div className="absolute inset-0 z-0 bg-black">
+          <VirtualTour scenes={tourScenes} />
+        </div>
+      );
+    }
+
+    // Fallback: simple panorama viewer with prev/next
+    if (tourImages.length > 0) {
+      return (
+        <div className="absolute inset-0 z-0 bg-black overflow-hidden">
+          <div className="w-full h-full cursor-grab active:cursor-grabbing">
+            <PanoramaViewer images={tourImages} activeIndex={tourIndex} />
+          </div>
+
+          <div className="absolute inset-x-0 top-6 flex items-center justify-between px-4 md:px-8 pointer-events-none z-10">
+            <span className="bg-black/50 backdrop-blur-md text-white text-[10px] uppercase tracking-[0.3em] font-bold px-3 py-1 rounded-full">Tour 360</span>
+            <span className="bg-black/50 backdrop-blur-md text-white text-[10px] uppercase tracking-[0.3em] font-bold px-3 py-1 rounded-full">{tourIndex + 1}/{tourImages.length}</span>
+          </div>
+
+          {tourImages.length > 1 && (
+            <>
+              <button
+                onClick={(e) => { e.stopPropagation(); setTourIndex((prev) => (prev - 1 + tourImages.length) % tourImages.length); }}
+                className="absolute left-4 top-1/2 -translate-y-1/2 z-20 rounded-full bg-black/40 p-3 text-white hover:bg-black/80 transition shadow-lg backdrop-blur-sm cursor-pointer"
+              >
+                <ChevronLeft size={20} />
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); setTourIndex((prev) => (prev + 1) % tourImages.length); }}
+                className="absolute right-4 top-1/2 -translate-y-1/2 z-20 rounded-full bg-black/40 p-3 text-white hover:bg-black/80 transition shadow-lg backdrop-blur-sm cursor-pointer"
+              >
+                <ChevronRight size={20} />
+              </button>
+            </>
+          )}
+        </div>
+      );
+    }
+  }
+
+  return (
+    <img
+      src={photoSource}
+      alt={propertyTitle}
+      className="absolute inset-0 z-0 h-full w-full object-cover grayscale-[0.2] brightness-[0.9] transition-transform duration-1000 group-hover:scale-105"
+    />
+  );
+}
 
 function mapDbToProperty(db: Record<string, unknown>): Property {
   return {
@@ -34,8 +114,9 @@ function mapDbToProperty(db: Record<string, unknown>): Property {
     matchScore:     (db.match_score as number)      ?? 0,
     image:          (db.image_url as string)        ?? "",
     gallery:        (db.gallery_urls as string[])   ?? [],
-    tour360:        (db.tour360_urls as string[])   ?? [],
-    video_url:      (db.video_url as string)        ?? undefined,
+    tour360:        (db.tour360_urls as string[])     ?? [],
+    tourScenes:     (db.tour_scenes as TourScene[])  ?? undefined,
+    video_url:      (db.video_url as string)          ?? undefined,
   };
 }
 
@@ -187,70 +268,19 @@ export default function PropertyPage() {
     { id: 'Gourmet', name: 'Área Gourmet', path: 'M 50 210 L 250 210 L 250 350 L 50 350 Z', area: '60m²' },
   ];
 
+  const tourScenes = property.tourScenes ?? [];
   const tourImages = property.tour360 ?? [];
+  const hasTour = tourScenes.length > 0 || tourImages.length > 0;
   const photoSource = property.gallery?.[0] ?? property.image;
-
-  const MediaContent = () => {
-    if (mediaType === 'video') {
-      return (
-        <video
-          autoPlay
-          loop
-          muted
-          playsInline
-          className="h-full w-full object-cover grayscale-[0.2] brightness-[0.9] absolute inset-0 z-0"
-        >
-          <source src={property.video_url ?? "/videoimovel.mp4"} type="video/mp4" />
-        </video>
-      );
-    }
-
-    if (mediaType === 'tour' && tourImages.length > 0) {
-      return (
-        <div className="absolute inset-0 z-0 bg-black overflow-hidden">
-          {/* Componente encapsulado para garantir que os eventos de drag do mouse funcionem */}
-          <div className="w-full h-full cursor-grab active:cursor-grabbing">
-            <PanoramaViewer images={tourImages} activeIndex={tourIndex} />
-          </div>
-          
-          <div className="absolute inset-x-0 top-6 flex items-center justify-between px-4 md:px-8 pointer-events-none z-10">
-            <span className="bg-black/50 backdrop-blur-md text-white text-[10px] uppercase tracking-[0.3em] font-bold px-3 py-1 rounded-full">Tour 360</span>
-            <span className="bg-black/50 backdrop-blur-md text-white text-[10px] uppercase tracking-[0.3em] font-bold px-3 py-1 rounded-full">{tourIndex + 1}/{tourImages.length}</span>
-          </div>
-          
-          {tourImages.length > 1 && (
-            <>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setTourIndex((prev) => (prev - 1 + tourImages.length) % tourImages.length);
-                }}
-                className="absolute left-4 top-1/2 -translate-y-1/2 z-20 rounded-full bg-black/40 p-3 text-white hover:bg-black/80 transition shadow-lg backdrop-blur-sm cursor-pointer"
-              >
-                <ChevronLeft size={20} />
-              </button>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setTourIndex((prev) => (prev + 1) % tourImages.length);
-                }}
-                className="absolute right-4 top-1/2 -translate-y-1/2 z-20 rounded-full bg-black/40 p-3 text-white hover:bg-black/80 transition shadow-lg backdrop-blur-sm cursor-pointer"
-              >
-                <ChevronRight size={20} />
-              </button>
-            </>
-          )}
-        </div>
-      );
-    }
-
-    return (
-      <img
-        src={photoSource}
-        alt={property.title}
-        className="absolute inset-0 z-0 h-full w-full object-cover grayscale-[0.2] brightness-[0.9] transition-transform duration-1000 group-hover:scale-105"
-      />
-    );
+  const mediaProps: MediaContentProps = {
+    mediaType,
+    tourScenes: tourScenes.length > 0 ? tourScenes : undefined,
+    tourImages,
+    tourIndex,
+    setTourIndex,
+    photoSource,
+    videoUrl: property.video_url,
+    propertyTitle: property.title,
   };
 
   return (
@@ -276,7 +306,7 @@ export default function PropertyPage() {
               <X size={32} />
             </button>
             <div className="w-full h-full max-w-7xl max-h-[85vh] rounded-[2rem] overflow-hidden shadow-2xl relative">
-              <MediaContent />
+              <MediaContent {...mediaProps} />
             </div>
           </motion.div>
         )}
@@ -336,7 +366,7 @@ export default function PropertyPage() {
           className="max-w-7xl mx-auto aspect-[4/5] sm:aspect-video md:aspect-[21/9] bg-brand-slate rounded-[2rem] md:rounded-[2.5rem] overflow-hidden relative group shadow-2xl"
         >
           {/* Media Content layer */}
-          <MediaContent />
+          <MediaContent {...mediaProps} />
           
           {/* Visual Tour HUD Overlay */}
           <div className="absolute inset-0 flex flex-col justify-between p-4 md:p-10 pointer-events-none z-30">
@@ -366,8 +396,8 @@ export default function PropertyPage() {
                   >
                     <Video size={12} className="md:w-[14px] md:h-[14px]" /> Vídeos
                   </button>
-                  {property.tour360?.length ? (
-                    <button 
+                  {hasTour ? (
+                    <button
                       onClick={() => setMediaType('tour')}
                       className={cn(
                         "px-3 py-1.5 md:px-4 md:py-2 rounded-full text-[8px] md:text-[10px] font-bold uppercase tracking-widest transition-all flex items-center gap-1.5 md:gap-2",

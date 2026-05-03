@@ -1,6 +1,10 @@
+import type { TourScene } from "../components/VirtualTour";
+
+export type { TourScene };
+
 export interface Property {
   id: string;
-  type: string; // e.g., 'Cobertura', 'Apartamento'
+  type: string;
   title: string;
   location: string;
   neighborhood: string;
@@ -11,7 +15,7 @@ export interface Property {
   bathrooms: number;
   parking: number;
   suites: number;
-  price?: string; // Not provided in text, but good to have
+  price?: string;
   description: string;
   features: string[];
   infrastructure: string[];
@@ -20,6 +24,7 @@ export interface Property {
   image: string;
   gallery?: string[];
   tour360?: string[];
+  tourScenes?: TourScene[];
   video_url?: string;
 }
 
@@ -177,12 +182,73 @@ export const PROPERTIES: Property[] = [
       "https://images.unsplash.com/photo-1494526585095-c41746248156?auto=format&fit=crop&w=1600&q=90",
       "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=1600&q=90"
     ],
-    tour360: [
-      "/property-tour/360/DSCN0009.JPG",
-      "/property-tour/360/DSCN0010.JPG",
-      "/property-tour/360/DSCN0011.JPG",
-      "/property-tour/360/DSCN0012.JPG",
-      "/property-tour/360/DSCN0013.JPG"
-    ]
+    // tourScenes define o tour virtual completo com hotspots clicáveis.
+    // yaw=0 aponta para frente (direção inicial da câmera).
+    // Ajuste os valores de yaw para alinhar com as portas/passagens nas suas fotos.
+    tourScenes: [
+      {
+        image: "/property-tour/360/DSCN0009.JPG",
+        roomName: "Hall de Entrada",
+        hotspots: [
+          { yaw: 0,   pitch: -25, targetIndex: 1, label: "Sala de Estar" },
+        ],
+      },
+      {
+        image: "/property-tour/360/DSCN0010.JPG",
+        roomName: "Sala de Estar",
+        hotspots: [
+          { yaw: 180, pitch: -25, targetIndex: 0, label: "Hall de Entrada" },
+          { yaw: 90,  pitch: -25, targetIndex: 2, label: "Sala de Jantar" },
+          { yaw: 270, pitch: -25, targetIndex: 5, label: "Corredor" },
+        ],
+      },
+      {
+        image: "/property-tour/360/DSCN0011.JPG",
+        roomName: "Sala de Jantar",
+        hotspots: [
+          { yaw: 270, pitch: -25, targetIndex: 1, label: "Sala de Estar" },
+          { yaw: 90,  pitch: -25, targetIndex: 3, label: "Área Gourmet" },
+        ],
+      },
+      {
+        image: "/property-tour/360/DSCN0012.JPG",
+        roomName: "Área Gourmet",
+        hotspots: [
+          { yaw: 270, pitch: -25, targetIndex: 2, label: "Sala de Jantar" },
+          { yaw: 90,  pitch: -25, targetIndex: 4, label: "Cozinha" },
+        ],
+      },
+      {
+        image: "/property-tour/360/DSCN0013.JPG",
+        roomName: "Cozinha Gourmet",
+        hotspots: [
+          { yaw: 270, pitch: -25, targetIndex: 3, label: "Área Gourmet" },
+          { yaw: 0,   pitch: -25, targetIndex: 5, label: "Corredor" },
+        ],
+      },
+      {
+        image: "/property-tour/360/DSCN0014.JPG",
+        roomName: "Corredor",
+        hotspots: [
+          { yaw: 180, pitch: -25, targetIndex: 1, label: "Sala de Estar" },
+          { yaw: 0,   pitch: -25, targetIndex: 6, label: "Suíte Master" },
+          { yaw: 270, pitch: -25, targetIndex: 7, label: "Banheiro Social" },
+        ],
+      },
+      {
+        image: "/property-tour/360/DSCN0015.JPG",
+        roomName: "Suíte Master",
+        hotspots: [
+          { yaw: 180, pitch: -25, targetIndex: 5, label: "Corredor" },
+        ],
+      },
+      {
+        image: "/property-tour/360/DSCN0016.JPG",
+        roomName: "Banheiro Social",
+        hotspots: [
+          { yaw: 0, pitch: -25, targetIndex: 5, label: "Corredor" },
+        ],
+      },
+    ],
   }
 ];
