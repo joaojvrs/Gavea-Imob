@@ -5,9 +5,9 @@
 
 import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "motion/react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useLocation } from "react-router-dom";
-import { ChevronDown, Bed, Bath, Ruler } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, Bed, Bath, Ruler } from "lucide-react";
 import { cn } from "@/src/lib/utils";
 import Navbar from "./components/Navbar";
 import Hero from "./components/Hero";
@@ -19,32 +19,117 @@ import Dashboard from "./pages/Dashboard";
 import ReelsPage from "./pages/ReelsPage";
 import { AuthProvider } from "./context/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
-import { PROPERTIES } from "./data/properties";
+import { PROPERTIES, Property } from "./data/properties";
+import { supabase } from "./lib/supabase";
 
 const PROPERTY_TYPES = ['Todos', 'Cobertura', 'Apartamento', 'Experiência 360'];
+
+function mapDbToProperty(db: Record<string, unknown>): Property {
+  return {
+    id:             db.id as string,
+    type:           (db.type as string)          ?? "Apartamento",
+    title:          (db.title as string)         ?? "",
+    location:       (db.location as string)      ?? "",
+    neighborhood:   (db.neighborhood as string)  ?? "",
+    city:           (db.city as string)          ?? "",
+    state:          (db.state as string)         ?? "",
+    area:           (db.area as number)          ?? 0,
+    bedrooms:       (db.bedrooms as number)      ?? 0,
+    bathrooms:      (db.bathrooms as number)     ?? 0,
+    parking:        (db.parking as number)       ?? 0,
+    suites:         (db.suites as number)        ?? 0,
+    price:          (db.price as string)         ?? undefined,
+    description:    (db.description as string)   ?? "",
+    features:       (db.features as string[])        ?? [],
+    infrastructure: (db.infrastructure as string[])  ?? [],
+    lazer:          (db.lazer as string[])            ?? [],
+    matchScore:     (db.match_score as number)        ?? 0,
+    image:          (db.image_url as string)          ?? "",
+    gallery:        (db.gallery_urls as string[])     ?? [],
+    tour360:        (db.tour360_urls as string[])     ?? [],
+    video_url:      (db.video_url as string)          ?? undefined,
+  };
+}
 
 function HomePage() {
   const [sortBy, setSortBy] = useState('newest');
   const [activeType, setActiveType] = useState('Todos');
+  const [activeIdx, setActiveIdx] = useState(0);
+  const [dbProps, setDbProps] = useState<Property[]>([]);
+  const scrollRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
 
+  // Refs so the interval never has stale closures
+  const activeIdxRef = useRef(0);
+  const displayedLenRef = useRef(0);
+  const isPausedRef = useRef(false);
+
+  useEffect(() => { activeIdxRef.current = activeIdx; }, [activeIdx]);
+
   useEffect(() => {
-    if (location.state && (location.state as any).scrollTo) {
-      const id = (location.state as any).scrollTo;
-      setTimeout(() => {
-        document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
-      }, 100);
+    if (location.state && (location.state as { scrollTo?: string }).scrollTo) {
+      const id = (location.state as { scrollTo: string }).scrollTo;
+      setTimeout(() => document.getElementById(id)?.scrollIntoView({ behavior: "smooth" }), 100);
       window.history.replaceState({}, document.title);
     }
   }, [location]);
 
-  const displayed = [...PROPERTIES]
+  // Load active DB properties
+  useEffect(() => {
+    supabase.from("properties").select("*").eq("status", "active")
+      .then(({ data }) => {
+        if (data) setDbProps((data as Record<string, unknown>[]).map(mapDbToProperty));
+      });
+  }, []);
+
+  // Merge mock + DB (avoid duplicates)
+  const allProperties = [
+    ...PROPERTIES,
+    ...dbProps.filter(dp => !PROPERTIES.find(p => p.id === dp.id)),
+  ];
+
+  const displayed = [...allProperties]
     .filter(p => activeType === 'Todos' || p.type === activeType)
     .sort((a, b) => {
       if (sortBy === 'area') return b.area - a.area;
       if (sortBy === 'match') return b.matchScore - a.matchScore;
       return 0;
     });
+
+  // Keep len ref in sync
+  useEffect(() => { displayedLenRef.current = displayed.length; }, [displayed.length]);
+
+  // Reset to first card when filter changes
+  useEffect(() => {
+    setActiveIdx(0);
+    scrollRef.current?.scrollTo({ left: 0 });
+  }, [activeType, sortBy]);
+
+  // Scroll helper — used by nav buttons and interval
+  const goTo = useCallback((idx: number) => {
+    const container = scrollRef.current;
+    if (!container) return;
+    const card = container.querySelector(`[data-card="${idx}"]`) as HTMLElement;
+    if (!card) return;
+    container.scrollTo({
+      left: Math.max(0, card.offsetLeft - (container.offsetWidth - card.offsetWidth) / 2),
+      behavior: 'smooth',
+    });
+    setActiveIdx(idx);
+  }, []);
+
+  // Stable auto-advance interval — reads refs, never stale
+  useEffect(() => {
+    const id = setInterval(() => {
+      if (isPausedRef.current || displayedLenRef.current <= 1) return;
+      const next = activeIdxRef.current >= displayedLenRef.current - 1
+        ? 0
+        : activeIdxRef.current + 1;
+      goTo(next);
+    }, 3500);
+    return () => clearInterval(id);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);  // runs once — state is read via refs inside
 
   return (
     <>
@@ -60,9 +145,7 @@ function HomePage() {
                 onClick={() => setActiveType(t)}
                 className={cn(
                   "whitespace-nowrap px-4 py-1.5 rounded-full text-[9px] font-bold uppercase tracking-[0.15em] transition-all duration-300 flex-shrink-0",
-                  activeType === t
-                    ? "bg-brand-blue text-white"
-                    : "text-brand-blue/35 hover:text-brand-blue hover:bg-brand-blue/5"
+                  activeType === t ? "bg-brand-blue text-white" : "text-brand-blue/35 hover:text-brand-blue hover:bg-brand-blue/5"
                 )}
                 style={{ fontFamily: 'var(--font-heading)' }}
               >
@@ -91,11 +174,10 @@ function HomePage() {
         </div>
       </div>
 
-      {/* ── Portfolio collection ── */}
-      <section id="collection">
-
-        {/* Dark editorial header */}
-        <div className="bg-brand-blue px-5 md:px-12 pt-20 md:pt-28 pb-20 md:pb-24">
+      {/* ── Collection ── */}
+      <section id="collection" className="bg-brand-blue overflow-hidden">
+        {/* Header */}
+        <div className="px-5 md:px-12 pt-20 md:pt-28 pb-12 md:pb-14">
           <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-end md:justify-between gap-8 md:gap-16">
             <div>
               <motion.p
@@ -119,126 +201,158 @@ function HomePage() {
                 <span className="italic font-light text-brand-accent">de Destaque.</span>
               </motion.h2>
             </div>
-            <motion.p
-              initial={{ opacity: 0, y: 16 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 1.0, ease: [0.25, 0.46, 0.45, 0.94], delay: 0.2 }}
-              className="text-white/30 max-w-[280px] text-sm font-light leading-relaxed"
-            >
-              Uma seleção rigorosa de propriedades que personificam o luxo moderno e a excelência arquitetônica.
-            </motion.p>
+            <div className="flex flex-col items-start md:items-end gap-5">
+              <motion.p
+                initial={{ opacity: 0, y: 16 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 1.0, ease: [0.25, 0.46, 0.45, 0.94], delay: 0.2 }}
+                className="text-white/30 max-w-[280px] text-sm font-light leading-relaxed"
+              >
+                Uma seleção rigorosa de propriedades que personificam o luxo moderno e a excelência arquitetônica.
+              </motion.p>
+              <motion.div
+                initial={{ opacity: 0 }}
+                whileInView={{ opacity: 1 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.4 }}
+                className="flex items-center gap-3"
+              >
+                <button
+                  onClick={() => { isPausedRef.current = true; goTo(Math.max(0, activeIdx - 1)); setTimeout(() => { isPausedRef.current = false; }, 6000); }}
+                  disabled={activeIdx === 0}
+                  className="w-10 h-10 rounded-full border border-white/15 text-white/50 flex items-center justify-center hover:border-brand-accent hover:text-brand-accent transition-all duration-300 disabled:opacity-20 disabled:pointer-events-none"
+                  aria-label="Anterior"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+                <span className="text-white/20 text-[10px] font-mono tracking-widest">
+                  {String(activeIdx + 1).padStart(2, '0')} / {String(displayed.length).padStart(2, '0')}
+                </span>
+                <button
+                  onClick={() => { isPausedRef.current = true; goTo(Math.min(displayed.length - 1, activeIdx + 1)); setTimeout(() => { isPausedRef.current = false; }, 6000); }}
+                  disabled={activeIdx === displayed.length - 1}
+                  className="w-10 h-10 rounded-full border border-white/15 text-white/50 flex items-center justify-center hover:border-brand-accent hover:text-brand-accent transition-all duration-300 disabled:opacity-20 disabled:pointer-events-none"
+                  aria-label="Próximo"
+                >
+                  <ChevronRight size={16} />
+                </button>
+              </motion.div>
+            </div>
           </div>
         </div>
 
-        {/* Cards — editorial alternating grid */}
-        <div className="bg-[#F7F9FB] px-5 md:px-12 py-12 md:py-16">
-          <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
-            {displayed.map((property, index) => {
-              const isWide = index % 3 === 0;
-              return (
-                <motion.div
-                  key={property.id}
-                  layoutId={`property-card-${property.id}`}
-                  initial={{ opacity: 0, y: 36 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true, margin: '-50px' }}
-                  transition={{
-                    duration: 1.2,
-                    ease: [0.25, 0.46, 0.45, 0.94],
-                    delay: Math.min(index, 3) * 0.1,
-                  }}
-                  className={cn("group relative", isWide && "md:col-span-2")}
-                >
-                  <Link to={`/property/${property.id}`} className="block">
-                    <div className={cn(
-                      "relative overflow-hidden rounded-[2rem] md:rounded-[2.5rem] cursor-pointer h-[340px] md:h-[480px]",
-                      "shadow-[0_4px_28px_rgba(10,37,64,0.07)]",
-                      "transition-shadow duration-700 group-hover:shadow-[0_20px_60px_rgba(10,37,64,0.16)]"
-                    )}>
+        {/* ── Carousel ── */}
+        <div className="pb-14 md:pb-16">
+          {/* Track — scrollbar hidden via inline style + class */}
+          <div
+            ref={scrollRef}
+            onMouseEnter={() => { isPausedRef.current = true; }}
+            onMouseLeave={() => { isPausedRef.current = false; }}
+            className="flex overflow-x-auto snap-x snap-mandatory no-scrollbar gap-5 px-5 md:px-12"
+            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', scrollPaddingLeft: '20px' } as React.CSSProperties}
+          >
+            {displayed.map((property, index) => (
+              <div
+                key={property.id}
+                data-card={index}
+                className="snap-start flex-shrink-0 w-[260px]"
+              >
+                <Link to={`/property/${property.id}`} className="block group">
+                  {/* Card: fixed total height via flex-col */}
+                  <div className="flex flex-col h-[400px] overflow-hidden rounded-2xl bg-white shadow-[0_4px_28px_rgba(0,0,0,0.3)] transition-shadow duration-500 group-hover:shadow-[0_12px_48px_rgba(0,0,0,0.45)]">
 
-                      {/* Photo */}
+                    {/* Image — fixed height */}
+                    <div className="relative overflow-hidden h-[220px] flex-shrink-0">
                       <div
-                        className="absolute inset-0 bg-cover bg-center transition-transform duration-[1100ms] ease-out group-hover:scale-[1.05]"
+                        className="absolute inset-0 bg-cover bg-center transition-transform duration-[900ms] ease-out group-hover:scale-[1.07]"
                         style={{ backgroundImage: `url(${property.image})` }}
                       />
-
-                      {/* Permanent gradient */}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/82 via-black/22 to-transparent" />
-
-                      {/* Top: type + match */}
-                      <div className="absolute top-5 left-5 right-5 flex items-center justify-between z-10">
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+                      <div className="absolute top-4 left-4 right-4 flex items-center justify-between">
                         <span
-                          className="bg-black/25 backdrop-blur-lg border border-white/10 text-white/70 text-[8px] font-bold uppercase tracking-[0.22em] px-3.5 py-1.5 rounded-full"
+                          className="bg-black/25 backdrop-blur-md border border-white/15 text-white/80 text-[7px] font-bold uppercase tracking-[0.2em] px-3 py-1 rounded-full"
                           style={{ fontFamily: 'var(--font-heading)' }}
                         >
                           {property.type}
                         </span>
                         <span
-                          className="bg-brand-accent text-white text-[8px] font-black tracking-widest px-3 py-1.5 rounded-full"
+                          className="bg-brand-accent text-white text-[7px] font-black tracking-widest px-2.5 py-1 rounded-full"
                           style={{ fontFamily: 'var(--font-heading)' }}
                         >
                           {property.matchScore}%
                         </span>
                       </div>
+                    </div>
 
-                      {/* Bottom info block */}
-                      <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8 z-10">
+                    {/* Info panel — fills remaining height */}
+                    <div className="flex flex-col flex-1 p-5 justify-between">
+                      <div>
                         <p
-                          className="text-white/35 text-[8px] font-bold uppercase tracking-[0.28em] mb-2"
+                          className="text-brand-blue/30 text-[7px] font-bold uppercase tracking-[0.25em] mb-1.5 truncate"
                           style={{ fontFamily: 'var(--font-heading)' }}
                         >
-                          {property.neighborhood} · {property.city}
+                          {property.neighborhood}{property.city ? ` · ${property.city}` : ''}
                         </p>
-
-                        <motion.h3
-                          layoutId={`property-title-${property.id}`}
-                          className={cn(
-                            "font-display font-bold text-white leading-tight tracking-tight mb-3",
-                            isWide ? "text-2xl md:text-3xl lg:text-4xl" : "text-xl md:text-2xl"
-                          )}
-                        >
+                        <h3 className="font-display font-bold text-brand-blue leading-tight tracking-tight text-base line-clamp-2 mb-3">
                           {property.title}
-                        </motion.h3>
-
-                        {/* Accent divider — grows on hover */}
-                        <div className="w-6 h-[1.5px] bg-brand-accent mb-4 transition-all duration-500 ease-out group-hover:w-12" />
-
-                        {/* Stats row */}
-                        <div className="flex items-center gap-4 md:gap-5 flex-wrap">
-                          <div className="flex items-center gap-1.5 text-white/45">
-                            <Bed size={10} />
-                            <span className="text-[10px] font-medium">{property.bedrooms} quartos</span>
+                        </h3>
+                        <div className="w-5 h-[1.5px] bg-brand-accent mb-3 transition-all duration-500 ease-out group-hover:w-10" />
+                        <div className="flex items-center gap-2.5 text-brand-blue/35">
+                          <div className="flex items-center gap-1">
+                            <Bed size={9} />
+                            <span className="text-[9px] font-medium">{property.bedrooms}</span>
                           </div>
-                          <div className="flex items-center gap-1.5 text-white/45">
-                            <Bath size={10} />
-                            <span className="text-[10px] font-medium">{property.bathrooms} banheiros</span>
+                          <span className="text-brand-blue/15 text-[9px]">·</span>
+                          <div className="flex items-center gap-1">
+                            <Bath size={9} />
+                            <span className="text-[9px] font-medium">{property.bathrooms}</span>
                           </div>
-                          <div className="flex items-center gap-1.5 text-white/45">
-                            <Ruler size={10} />
-                            <span className="text-[10px] font-medium">{property.area} m²</span>
+                          <span className="text-brand-blue/15 text-[9px]">·</span>
+                          <div className="flex items-center gap-1">
+                            <Ruler size={9} />
+                            <span className="text-[9px] font-medium">{property.area}m²</span>
                           </div>
-                          {property.price && (
-                            <span className="ml-auto font-display font-bold text-white text-lg md:text-2xl">
-                              {property.price}
-                            </span>
-                          )}
-                        </div>
-
-                        {/* CTA — slides in on hover */}
-                        <div className="flex items-center gap-2 mt-4 text-brand-accent opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300 ease-out">
-                          <span className="text-[9px] font-bold uppercase tracking-[0.22em]" style={{ fontFamily: 'var(--font-heading)' }}>
-                            Ver propriedade
-                          </span>
-                          <span className="text-sm">→</span>
                         </div>
                       </div>
+                      <div className="flex items-center justify-between mt-3">
+                        {property.price ? (
+                          <span className="font-display font-bold text-brand-blue text-base leading-none">
+                            {property.price}
+                          </span>
+                        ) : <span />}
+                        <span
+                          className="text-brand-accent text-[8px] font-bold uppercase tracking-[0.2em] opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center gap-1"
+                          style={{ fontFamily: 'var(--font-heading)' }}
+                        >
+                          Ver <span className="text-xs">→</span>
+                        </span>
+                      </div>
                     </div>
-                  </Link>
-                </motion.div>
-              );
-            })}
+                  </div>
+                </Link>
+              </div>
+            ))}
           </div>
+
+          {/* Dots */}
+          {displayed.length > 1 && (
+            <div className="flex justify-center items-center gap-1.5 mt-8">
+              {displayed.map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => { isPausedRef.current = true; goTo(i); setTimeout(() => { isPausedRef.current = false; }, 6000); }}
+                  className={cn(
+                    "rounded-full transition-all duration-300",
+                    i === activeIdx
+                      ? "w-5 h-1.5 bg-brand-accent"
+                      : "w-1.5 h-1.5 bg-white/15 hover:bg-white/30"
+                  )}
+                  aria-label={`Ir para imóvel ${i + 1}`}
+                />
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
@@ -252,13 +366,8 @@ export default function App() {
     <Router>
       <AuthProvider>
         <Routes>
-          {/* Auth page — sem Navbar/Footer */}
           <Route path="/auth" element={<AuthPage />} />
-
-          {/* Reels — fullscreen, sem Navbar/Footer */}
           <Route path="/reels" element={<ReelsPage />} />
-
-          {/* Todas as outras rotas com layout padrão */}
           <Route
             path="*"
             element={
