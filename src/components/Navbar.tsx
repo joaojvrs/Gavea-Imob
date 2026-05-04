@@ -12,6 +12,7 @@ import { useAuth, UserRole } from "@/src/context/AuthContext";
 
 const NAV_LINKS = [
   { label: "Portfólio", id: "collection", to: null },
+  { label: "Imóveis", id: null, to: "/imoveis" },
   { label: "Gávea AI", id: "visionary", to: null },
   { label: "Reels", id: "reels", to: "/reels" },
   { label: "Sobre", id: "about", to: null },

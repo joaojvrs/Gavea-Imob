@@ -7,8 +7,11 @@ import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "motion/react";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useLocation } from "react-router-dom";
-import { ChevronDown, ChevronLeft, ChevronRight, Bed, Bath, Ruler } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, Bed, Bath, Ruler, Search, ArrowRight } from "lucide-react";
 import { cn } from "@/src/lib/utils";
+
+const CARD_W = 280;   // card width px
+const CARD_GAP = 16;  // gap px
 import Navbar from "./components/Navbar";
 import Hero from "./components/Hero";
 import GaveaAI from "./components/GaveaAI";
@@ -17,6 +20,7 @@ import PropertyPage from "./pages/PropertyPage";
 import AuthPage from "./pages/AuthPage";
 import Dashboard from "./pages/Dashboard";
 import ReelsPage from "./pages/ReelsPage";
+import PropertiesPage from "./pages/PropertiesPage";
 import { AuthProvider } from "./context/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { PROPERTIES, Property } from "./data/properties";
@@ -56,10 +60,8 @@ function HomePage() {
   const [activeType, setActiveType] = useState('Todos');
   const [activeIdx, setActiveIdx] = useState(0);
   const [dbProps, setDbProps] = useState<Property[]>([]);
-  const scrollRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
 
-  // Refs so the interval never has stale closures
   const activeIdxRef = useRef(0);
   const displayedLenRef = useRef(0);
   const isPausedRef = useRef(false);
@@ -74,7 +76,6 @@ function HomePage() {
     }
   }, [location]);
 
-  // Load active DB properties
   useEffect(() => {
     supabase.from("properties").select("*").eq("status", "active")
       .then(({ data }) => {
@@ -82,7 +83,6 @@ function HomePage() {
       });
   }, []);
 
-  // Merge mock + DB (avoid duplicates)
   const allProperties = [
     ...PROPERTIES,
     ...dbProps.filter(dp => !PROPERTIES.find(p => p.id === dp.id)),
@@ -96,40 +96,41 @@ function HomePage() {
       return 0;
     });
 
-  // Keep len ref in sync
   useEffect(() => { displayedLenRef.current = displayed.length; }, [displayed.length]);
+  useEffect(() => { setActiveIdx(0); }, [activeType, sortBy]);
 
-  // Reset to first card when filter changes
-  useEffect(() => {
-    setActiveIdx(0);
-    scrollRef.current?.scrollTo({ left: 0 });
-  }, [activeType, sortBy]);
-
-  // Scroll helper — used by nav buttons and interval
   const goTo = useCallback((idx: number) => {
-    const container = scrollRef.current;
-    if (!container) return;
-    const card = container.querySelector(`[data-card="${idx}"]`) as HTMLElement;
-    if (!card) return;
-    container.scrollTo({
-      left: Math.max(0, card.offsetLeft - (container.offsetWidth - card.offsetWidth) / 2),
-      behavior: 'smooth',
-    });
-    setActiveIdx(idx);
+    const clamped = Math.max(0, Math.min(idx, displayedLenRef.current - 1));
+    setActiveIdx(clamped);
+    activeIdxRef.current = clamped;
   }, []);
 
-  // Stable auto-advance interval — reads refs, never stale
+  const prev = useCallback(() => {
+    isPausedRef.current = true;
+    goTo(activeIdxRef.current - 1);
+    setTimeout(() => { isPausedRef.current = false; }, 6000);
+  }, [goTo]);
+
+  const next = useCallback(() => {
+    isPausedRef.current = true;
+    goTo(activeIdxRef.current + 1);
+    setTimeout(() => { isPausedRef.current = false; }, 6000);
+  }, [goTo]);
+
+  // Auto-advance
   useEffect(() => {
     const id = setInterval(() => {
       if (isPausedRef.current || displayedLenRef.current <= 1) return;
-      const next = activeIdxRef.current >= displayedLenRef.current - 1
-        ? 0
-        : activeIdxRef.current + 1;
-      goTo(next);
-    }, 3500);
+      const next = activeIdxRef.current >= displayedLenRef.current - 1 ? 0 : activeIdxRef.current + 1;
+      setActiveIdx(next);
+      activeIdxRef.current = next;
+    }, 4000);
     return () => clearInterval(id);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);  // runs once — state is read via refs inside
+  }, []);
+
+  // How many cards visible based on viewport (approx)
+  // offset: slide track so activeIdx card starts at left edge of viewport
+  const offset = -(activeIdx * (CARD_W + CARD_GAP));
 
   return (
     <>
@@ -144,7 +145,7 @@ function HomePage() {
                 key={t}
                 onClick={() => setActiveType(t)}
                 className={cn(
-                  "whitespace-nowrap px-4 py-1.5 rounded-full text-[9px] font-bold uppercase tracking-[0.15em] transition-all duration-300 flex-shrink-0",
+                  "whitespace-nowrap px-4 py-1.5 rounded-full text-[9px] font-bold uppercase tracking-[0.15em] transition-all duration-200 flex-shrink-0",
                   activeType === t ? "bg-brand-blue text-white" : "text-brand-blue/35 hover:text-brand-blue hover:bg-brand-blue/5"
                 )}
                 style={{ fontFamily: 'var(--font-heading)' }}
@@ -176,163 +177,142 @@ function HomePage() {
 
       {/* ── Collection ── */}
       <section id="collection" className="bg-brand-blue overflow-hidden">
+
         {/* Header */}
-        <div className="px-5 md:px-12 pt-20 md:pt-28 pb-12 md:pb-14">
+        <div className="px-5 md:px-12 pt-20 md:pt-28 pb-10 md:pb-12">
           <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-end md:justify-between gap-8 md:gap-16">
             <div>
               <motion.p
-                initial={{ opacity: 0, y: 8 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.8, ease: [0.25, 0.46, 0.45, 0.94] }}
+                initial={{ opacity: 0, y: 8 }} whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }} transition={{ duration: 0.7 }}
                 className="text-brand-accent text-[9px] font-bold uppercase tracking-[0.32em] mb-5"
                 style={{ fontFamily: 'var(--font-heading)' }}
               >
                 Curation Selection · {displayed.length} {displayed.length === 1 ? 'imóvel' : 'imóveis'}
               </motion.p>
               <motion.h2
-                initial={{ opacity: 0, y: 28 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 1.2, ease: [0.25, 0.46, 0.45, 0.94], delay: 0.08 }}
+                initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }} transition={{ duration: 0.9, delay: 0.07 }}
                 className="text-5xl md:text-7xl lg:text-8xl font-display font-bold tracking-[-0.03em] text-white leading-[0.90]"
               >
                 Residências<br />
                 <span className="italic font-light text-brand-accent">de Destaque.</span>
               </motion.h2>
             </div>
+
             <div className="flex flex-col items-start md:items-end gap-5">
               <motion.p
-                initial={{ opacity: 0, y: 16 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 1.0, ease: [0.25, 0.46, 0.45, 0.94], delay: 0.2 }}
+                initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }} transition={{ duration: 0.8, delay: 0.15 }}
                 className="text-white/30 max-w-[280px] text-sm font-light leading-relaxed"
               >
                 Uma seleção rigorosa de propriedades que personificam o luxo moderno e a excelência arquitetônica.
               </motion.p>
+
+              {/* ── Arrow controls ── */}
               <motion.div
-                initial={{ opacity: 0 }}
-                whileInView={{ opacity: 1 }}
-                viewport={{ once: true }}
-                transition={{ delay: 0.4 }}
+                initial={{ opacity: 0 }} whileInView={{ opacity: 1 }}
+                viewport={{ once: true }} transition={{ delay: 0.3 }}
                 className="flex items-center gap-3"
               >
                 <button
-                  onClick={() => { isPausedRef.current = true; goTo(Math.max(0, activeIdx - 1)); setTimeout(() => { isPausedRef.current = false; }, 6000); }}
+                  onClick={prev}
                   disabled={activeIdx === 0}
-                  className="w-10 h-10 rounded-full border border-white/15 text-white/50 flex items-center justify-center hover:border-brand-accent hover:text-brand-accent transition-all duration-300 disabled:opacity-20 disabled:pointer-events-none"
-                  aria-label="Anterior"
+                  className="w-11 h-11 rounded-full border border-white/15 text-white/50 flex items-center justify-center hover:border-brand-accent hover:text-brand-accent hover:bg-brand-accent/10 transition-all duration-200 disabled:opacity-20 disabled:pointer-events-none active:scale-95"
                 >
-                  <ChevronLeft size={16} />
+                  <ChevronLeft size={18} />
                 </button>
-                <span className="text-white/20 text-[10px] font-mono tracking-widest">
+                <span className="text-white/25 text-[11px] font-mono tracking-widest tabular-nums w-16 text-center">
                   {String(activeIdx + 1).padStart(2, '0')} / {String(displayed.length).padStart(2, '0')}
                 </span>
                 <button
-                  onClick={() => { isPausedRef.current = true; goTo(Math.min(displayed.length - 1, activeIdx + 1)); setTimeout(() => { isPausedRef.current = false; }, 6000); }}
+                  onClick={next}
                   disabled={activeIdx === displayed.length - 1}
-                  className="w-10 h-10 rounded-full border border-white/15 text-white/50 flex items-center justify-center hover:border-brand-accent hover:text-brand-accent transition-all duration-300 disabled:opacity-20 disabled:pointer-events-none"
-                  aria-label="Próximo"
+                  className="w-11 h-11 rounded-full border border-white/15 text-white/50 flex items-center justify-center hover:border-brand-accent hover:text-brand-accent hover:bg-brand-accent/10 transition-all duration-200 disabled:opacity-20 disabled:pointer-events-none active:scale-95"
                 >
-                  <ChevronRight size={16} />
+                  <ChevronRight size={18} />
                 </button>
               </motion.div>
             </div>
           </div>
         </div>
 
-        {/* ── Carousel ── */}
-        <div className="pb-14 md:pb-16">
-          {/* Track — scrollbar hidden via inline style + class */}
-          <div
-            ref={scrollRef}
-            onMouseEnter={() => { isPausedRef.current = true; }}
-            onMouseLeave={() => { isPausedRef.current = false; }}
-            className="flex overflow-x-auto snap-x snap-mandatory no-scrollbar gap-5 px-5 md:px-12"
-            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', scrollPaddingLeft: '20px' } as React.CSSProperties}
-          >
-            {displayed.map((property, index) => (
-              <div
-                key={property.id}
-                data-card={index}
-                className="snap-start flex-shrink-0 w-[260px]"
-              >
-                <Link to={`/property/${property.id}`} className="block group">
-                  {/* Card: fixed total height via flex-col */}
-                  <div className="flex flex-col h-[400px] overflow-hidden rounded-2xl bg-white shadow-[0_4px_28px_rgba(0,0,0,0.3)] transition-shadow duration-500 group-hover:shadow-[0_12px_48px_rgba(0,0,0,0.45)]">
-
-                    {/* Image — fixed height */}
-                    <div className="relative overflow-hidden h-[220px] flex-shrink-0">
+        {/* ── Carousel track ── */}
+        <div className="pb-10">
+          {/* Viewport — clips the track */}
+          <div className="overflow-hidden px-5 md:px-12">
+            {/* Track — moves via transform */}
+            <div
+              className="flex gap-4"
+              style={{
+                transform: `translateX(${offset}px)`,
+                transition: 'transform 0.55s cubic-bezier(0.4, 0, 0.2, 1)',
+                willChange: 'transform',
+              }}
+            >
+              {displayed.map((property) => (
+                  <div
+                    key={property.id}
+                    className="flex-shrink-0"
+                    style={{ width: CARD_W }}
+                  >
+                    <Link to={`/property/${property.id}`} className="block group">
                       <div
-                        className="absolute inset-0 bg-cover bg-center transition-transform duration-[900ms] ease-out group-hover:scale-[1.07]"
-                        style={{ backgroundImage: `url(${property.image})` }}
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
-                      <div className="absolute top-4 left-4 right-4 flex items-center justify-between">
-                        <span
-                          className="bg-black/25 backdrop-blur-md border border-white/15 text-white/80 text-[7px] font-bold uppercase tracking-[0.2em] px-3 py-1 rounded-full"
-                          style={{ fontFamily: 'var(--font-heading)' }}
-                        >
-                          {property.type}
-                        </span>
-                        <span
-                          className="bg-brand-accent text-white text-[7px] font-black tracking-widest px-2.5 py-1 rounded-full"
-                          style={{ fontFamily: 'var(--font-heading)' }}
-                        >
-                          {property.matchScore}%
-                        </span>
-                      </div>
-                    </div>
+                        className="flex flex-col overflow-hidden rounded-2xl bg-white"
+                        style={{
+                          height: 420,
+                          boxShadow: '0 4px 24px rgba(0,0,0,0.25)',
+                        }}
+                      >
+                        {/* Image */}
+                        <div className="relative overflow-hidden flex-shrink-0" style={{ height: 230 }}>
+                          <div
+                            className="absolute inset-0 bg-cover bg-center transition-transform duration-700 ease-out group-hover:scale-[1.06]"
+                            style={{ backgroundImage: `url(${property.image})` }}
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
+                          <div className="absolute top-3.5 left-3.5 right-3.5 flex items-center justify-between">
+                            <span className="bg-black/30 backdrop-blur-md border border-white/15 text-white/85 text-[7px] font-bold uppercase tracking-[0.2em] px-3 py-1 rounded-full" style={{ fontFamily: 'var(--font-heading)' }}>
+                              {property.type}
+                            </span>
+                            <span className="bg-brand-accent text-white text-[7px] font-black tracking-widest px-2.5 py-1 rounded-full" style={{ fontFamily: 'var(--font-heading)' }}>
+                              {property.matchScore}%
+                            </span>
+                          </div>
+                        </div>
 
-                    {/* Info panel — fills remaining height */}
-                    <div className="flex flex-col flex-1 p-5 justify-between">
-                      <div>
-                        <p
-                          className="text-brand-blue/30 text-[7px] font-bold uppercase tracking-[0.25em] mb-1.5 truncate"
-                          style={{ fontFamily: 'var(--font-heading)' }}
-                        >
-                          {property.neighborhood}{property.city ? ` · ${property.city}` : ''}
-                        </p>
-                        <h3 className="font-display font-bold text-brand-blue leading-tight tracking-tight text-base line-clamp-2 mb-3">
-                          {property.title}
-                        </h3>
-                        <div className="w-5 h-[1.5px] bg-brand-accent mb-3 transition-all duration-500 ease-out group-hover:w-10" />
-                        <div className="flex items-center gap-2.5 text-brand-blue/35">
-                          <div className="flex items-center gap-1">
-                            <Bed size={9} />
-                            <span className="text-[9px] font-medium">{property.bedrooms}</span>
+                        {/* Info */}
+                        <div className="flex flex-col flex-1 p-5 justify-between">
+                          <div>
+                            <p className="text-brand-blue/30 text-[7px] font-bold uppercase tracking-[0.25em] mb-1.5 truncate" style={{ fontFamily: 'var(--font-heading)' }}>
+                              {property.neighborhood}{property.city ? ` · ${property.city}` : ''}
+                            </p>
+                            <h3 className="font-display font-bold text-brand-blue leading-tight tracking-tight text-[15px] line-clamp-2 mb-3">
+                              {property.title}
+                            </h3>
+                            <div className="w-5 h-[1.5px] bg-brand-accent mb-3 transition-all duration-300 group-hover:w-10" />
+                            <div className="flex items-center gap-2.5 text-brand-blue/35">
+                              <span className="flex items-center gap-1"><Bed size={9} /><span className="text-[9px] font-medium">{property.bedrooms}</span></span>
+                              <span className="text-brand-blue/15 text-[9px]">·</span>
+                              <span className="flex items-center gap-1"><Bath size={9} /><span className="text-[9px] font-medium">{property.bathrooms}</span></span>
+                              <span className="text-brand-blue/15 text-[9px]">·</span>
+                              <span className="flex items-center gap-1"><Ruler size={9} /><span className="text-[9px] font-medium">{property.area}m²</span></span>
+                            </div>
                           </div>
-                          <span className="text-brand-blue/15 text-[9px]">·</span>
-                          <div className="flex items-center gap-1">
-                            <Bath size={9} />
-                            <span className="text-[9px] font-medium">{property.bathrooms}</span>
-                          </div>
-                          <span className="text-brand-blue/15 text-[9px]">·</span>
-                          <div className="flex items-center gap-1">
-                            <Ruler size={9} />
-                            <span className="text-[9px] font-medium">{property.area}m²</span>
+                          <div className="flex items-center justify-between mt-3">
+                            {property.price
+                              ? <span className="font-display font-bold text-brand-blue text-[15px] leading-none">{property.price}</span>
+                              : <span />}
+                            <span className="text-brand-accent text-[8px] font-bold uppercase tracking-[0.2em] opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center gap-1" style={{ fontFamily: 'var(--font-heading)' }}>
+                              Ver →
+                            </span>
                           </div>
                         </div>
                       </div>
-                      <div className="flex items-center justify-between mt-3">
-                        {property.price ? (
-                          <span className="font-display font-bold text-brand-blue text-base leading-none">
-                            {property.price}
-                          </span>
-                        ) : <span />}
-                        <span
-                          className="text-brand-accent text-[8px] font-bold uppercase tracking-[0.2em] opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center gap-1"
-                          style={{ fontFamily: 'var(--font-heading)' }}
-                        >
-                          Ver <span className="text-xs">→</span>
-                        </span>
-                      </div>
-                    </div>
+                    </Link>
                   </div>
-                </Link>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
 
           {/* Dots */}
@@ -344,16 +324,58 @@ function HomePage() {
                   onClick={() => { isPausedRef.current = true; goTo(i); setTimeout(() => { isPausedRef.current = false; }, 6000); }}
                   className={cn(
                     "rounded-full transition-all duration-300",
-                    i === activeIdx
-                      ? "w-5 h-1.5 bg-brand-accent"
-                      : "w-1.5 h-1.5 bg-white/15 hover:bg-white/30"
+                    i === activeIdx ? "w-6 h-1.5 bg-brand-accent" : "w-1.5 h-1.5 bg-white/20 hover:bg-white/40"
                   )}
-                  aria-label={`Ir para imóvel ${i + 1}`}
                 />
               ))}
             </div>
           )}
         </div>
+
+        {/* ── CTA: Não encontrou seu imóvel? ── */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-40px" }}
+          transition={{ duration: 0.7 }}
+          className="mx-5 md:mx-12 mb-14 md:mb-16"
+        >
+          <Link to="/imoveis" className="group block">
+            <div
+              className="relative overflow-hidden rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-6 px-8 py-7 transition-all duration-300"
+              style={{
+                background: 'linear-gradient(135deg, rgba(201,169,110,0.12) 0%, rgba(201,169,110,0.05) 100%)',
+                border: '1px solid rgba(201,169,110,0.25)',
+              }}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(201,169,110,0.5)'; (e.currentTarget as HTMLElement).style.background = 'linear-gradient(135deg, rgba(201,169,110,0.18) 0%, rgba(201,169,110,0.08) 100%)'; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(201,169,110,0.25)'; (e.currentTarget as HTMLElement).style.background = 'linear-gradient(135deg, rgba(201,169,110,0.12) 0%, rgba(201,169,110,0.05) 100%)'; }}
+            >
+              <div className="absolute right-0 top-0 w-56 h-full pointer-events-none opacity-15"
+                style={{ background: 'radial-gradient(ellipse, #c9a96e 0%, transparent 70%)', transform: 'translate(25%, -10%)' }} />
+
+              <div className="flex items-center gap-5">
+                <div className="w-12 h-12 rounded-xl flex-shrink-0 flex items-center justify-center"
+                  style={{ background: 'rgba(201,169,110,0.15)', border: '1px solid rgba(201,169,110,0.3)' }}>
+                  <Search size={20} className="text-brand-accent" />
+                </div>
+                <div>
+                  <p className="text-white font-bold text-[17px] leading-tight mb-1">
+                    Não encontrou o imóvel ideal?
+                  </p>
+                  <p className="text-white/35 text-[13px] font-light">
+                    Temos mais de 2.000 opções no Litoral Paulista.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2.5 flex-shrink-0 px-5 py-2.5 rounded-xl font-bold text-[12px] uppercase tracking-[0.15em] transition-all duration-200"
+                style={{ background: 'rgba(201,169,110,0.15)', color: '#c9a96e', border: '1px solid rgba(201,169,110,0.3)' }}>
+                Ver todos os imóveis
+                <ArrowRight size={14} />
+              </div>
+            </div>
+          </Link>
+        </motion.div>
       </section>
 
       <GaveaAI />
@@ -376,6 +398,7 @@ export default function App() {
                 <AnimatePresence mode="wait">
                   <Routes>
                     <Route path="/" element={<HomePage />} />
+                    <Route path="/imoveis" element={<PropertiesPage />} />
                     <Route path="/property/:id" element={<PropertyPage />} />
                     <Route
                       path="/dashboard"
